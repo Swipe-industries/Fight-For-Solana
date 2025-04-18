@@ -6,16 +6,22 @@ class Controls {
                 case 'KeyS': game.moveBackward = true; break;
                 case 'KeyA': game.moveLeft = true; break;
                 case 'KeyD': game.moveRight = true; break;
-                case 'ShiftLeft': game.isRunning = true; break;
-                // In the keydown event handler
+                case 'ShiftLeft': 
+                    // Only start sliding if player is moving and not already sliding
+                    if ((game.moveForward || game.moveBackward || game.moveLeft || game.moveRight) 
+                        && !game.isSliding && game.canJump) {
+                        game.isSliding = true;
+                    }
+                    break;
                 case 'Space':
                     if (game.canJump) {
-                        game.velocity.y = 10; // Reduced from 12 to 10
+                        game.velocity.y = 10;
                         game.canJump = false;
                     }
                     break;
             }
         });
+        
         document.addEventListener('keyup', (event) => Controls.onKeyUp(game, event));
         document.addEventListener('mousemove', (event) => Controls.onMouseMove(game, event));
         document.addEventListener('click', () => Player.shoot(game));
@@ -38,7 +44,7 @@ class Controls {
             case 'KeyS': game.moveBackward = false; break;
             case 'KeyA': game.moveLeft = false; break;
             case 'KeyD': game.moveRight = false; break;
-            case 'ShiftLeft': game.isRunning = false; break;
+            // No need to handle ShiftLeft keyup since sliding continues until momentum is gone
         }
     }
 
@@ -49,13 +55,18 @@ class Controls {
             game.player.rotation.y = game.targetRotation.y;
             
             // Vertical rotation (up/down) with limits
-            game.targetRotation.x -= event.movementY * game.mouseSensitivity;
+            game.cameraPitch -= event.movementY * game.mouseSensitivity;
             
             // Limit vertical look angle to prevent over-rotation
-            game.targetRotation.x = Math.max(-Math.PI/3, Math.min(Math.PI/3, game.targetRotation.x));
+            game.cameraPitch = Math.max(-Math.PI/2.5, Math.min(Math.PI/2.5, game.cameraPitch));
             
             // Apply camera pitch
-            game.camera.rotation.x = game.targetRotation.x;
+            game.camera.position.y = game.player.position.y + 1.7; // Eye level
+            
+            // Update camera direction based on player rotation and camera pitch
+            game.camera.rotation.order = "YXZ"; // Important for proper rotation order
+            game.camera.rotation.y = game.player.rotation.y;
+            game.camera.rotation.x = game.cameraPitch;
         }
     }
 }
