@@ -7,9 +7,10 @@ class Controls {
                 case 'KeyA': game.moveLeft = true; break;
                 case 'KeyD': game.moveRight = true; break;
                 case 'ShiftLeft': game.isRunning = true; break;
+                // In the keydown event handler
                 case 'Space':
                     if (game.canJump) {
-                        game.velocity.y = 8;  // Increased from default (likely 5)
+                        game.velocity.y = 10; // Reduced from 12 to 10
                         game.canJump = false;
                     }
                     break;
@@ -43,8 +44,18 @@ class Controls {
 
     static onMouseMove(game, event) {
         if(document.pointerLockElement === game.renderer.domElement) {
+            // Horizontal rotation (left/right)
             game.targetRotation.y -= event.movementX * game.mouseSensitivity;
             game.player.rotation.y = game.targetRotation.y;
+            
+            // Vertical rotation (up/down) with limits
+            game.targetRotation.x -= event.movementY * game.mouseSensitivity;
+            
+            // Limit vertical look angle to prevent over-rotation
+            game.targetRotation.x = Math.max(-Math.PI/3, Math.min(Math.PI/3, game.targetRotation.x));
+            
+            // Apply camera pitch
+            game.camera.rotation.x = game.targetRotation.x;
         }
     }
 }
