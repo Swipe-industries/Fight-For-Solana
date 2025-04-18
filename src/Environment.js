@@ -237,42 +237,66 @@ class Environment {
     }
 
     static addDecorations(game) {
-        // Simple trees with brighter colors
+        // More realistic trees with improved foliage and trunk
         for (let i = 0; i < 15; i++) {
             const treeGroup = new THREE.Group();
             
-            // Tree trunk with collision
-            const trunkGeometry = new THREE.CylinderGeometry(0.3, 0.5, 2, 8);
+            // Tree trunk with bark-like texture
+            const trunkGeometry = new THREE.CylinderGeometry(0.3, 0.5, 3, 12);
             const trunkMaterial = new THREE.MeshPhongMaterial({ 
-                color: 0xcd853f,
-                shininess: 10
+                color: 0x8B4513,
+                shininess: 3,
+                flatShading: true
             });
             const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
             
             // Collision cylinder for the whole tree
-            const collisionGeometry = new THREE.CylinderGeometry(1.5, 1.5, 5, 8);
+            const collisionGeometry = new THREE.CylinderGeometry(1.5, 1.5, 6, 8);
             const collisionMaterial = new THREE.MeshBasicMaterial({ visible: false });
             const collisionMesh = new THREE.Mesh(collisionGeometry, collisionMaterial);
-            collisionMesh.position.y = 2.5;
+            collisionMesh.position.y = 3;
             
-            // Tree top
-            const topGeometry = new THREE.ConeGeometry(1.5, 3, 8);
-            const topMaterial = new THREE.MeshPhongMaterial({ 
-                color: 0x90EE90,
-                shininess: 15
-            });
-            const top = new THREE.Mesh(topGeometry, topMaterial);
-            top.position.y = 2.5;
+            // Multiple layers of foliage with more natural shapes
+            const createFoliage = (y, scale) => {
+                // Use icosahedron for more natural looking foliage
+                const foliageGeometry = new THREE.IcosahedronGeometry(1.5 * scale, 1);
+                // Vary the green colors slightly for each tree
+                const baseColor = new THREE.Color(0x2D4F2D).lerp(
+                    new THREE.Color(0x4F7942), 
+                    0.3 + Math.random() * 0.4
+                );
+                
+                const foliageMaterial = new THREE.MeshPhongMaterial({ 
+                    color: baseColor,
+                    shininess: 3,
+                    flatShading: true
+                });
+                
+                const foliage = new THREE.Mesh(foliageGeometry, foliageMaterial);
+                foliage.position.y = y;
+                // Add some random offset for natural look
+                foliage.position.x = (Math.random() - 0.5) * 0.7;
+                foliage.position.z = (Math.random() - 0.5) * 0.7;
+                // Add random scaling for more variety
+                foliage.scale.x = 0.9 + Math.random() * 0.2;
+                foliage.scale.z = 0.9 + Math.random() * 0.2;
+                return foliage;
+            };
+            
+            // Add multiple layers of foliage with more variation
+            treeGroup.add(createFoliage(3.5, 1.0));
+            treeGroup.add(createFoliage(4.5, 0.85));
+            treeGroup.add(createFoliage(5.3, 0.7));
+            treeGroup.add(createFoliage(6.0, 0.5));
             
             treeGroup.add(trunk);
-            treeGroup.add(top);
             treeGroup.add(collisionMesh);
             
-            // Random position with smaller range
+            // Random position with better distribution
             const position = new THREE.Vector3(
-                (Math.random() - 0.5) * 40,  // Reduced from 80 to 40
-                1,
-                (Math.random() - 0.5) * 40
+                (Math.random() - 0.5) * 80,
+                1.5,
+                (Math.random() - 0.5) * 80
             );
             
             // Check if position is too close to other objects
@@ -280,13 +304,24 @@ class Environment {
             let attempts = 0;
             while (!validPosition && attempts < 10) {
                 validPosition = true;
+                // Don't place trees near the building
+                if (position.length() < 20) {
+                    validPosition = false;
+                    position.set(
+                        (Math.random() - 0.5) * 80,
+                        1.5,
+                        (Math.random() - 0.5) * 80
+                    );
+                    continue;
+                }
+                
                 for (const obj of game.collidableObjects) {
                     const distance = position.distanceTo(obj.position);
-                    if (distance < 5) {  // Minimum distance between trees and other objects
+                    if (distance < 10) {  // Increased minimum distance
                         validPosition = false;
                         position.set(
                             (Math.random() - 0.5) * 80,
-                            1,
+                            1.5,
                             (Math.random() - 0.5) * 80
                         );
                         break;
@@ -296,6 +331,11 @@ class Environment {
             }
             
             treeGroup.position.copy(position);
+            
+            // Add random rotation and slight tilt for variety
+            treeGroup.rotation.y = Math.random() * Math.PI * 2;
+            treeGroup.rotation.x = (Math.random() - 0.5) * 0.05;
+            treeGroup.rotation.z = (Math.random() - 0.5) * 0.05;
             
             treeGroup.traverse((object) => {
                 if (object instanceof THREE.Mesh) {

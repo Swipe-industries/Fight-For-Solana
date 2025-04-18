@@ -2,65 +2,67 @@ class Player {
     static createPlayer(game) {
         const playerGroup = new THREE.Group();
         
-        // Updated materials for suit appearance
+        // Updated materials for female character
         const suitMaterial = new THREE.MeshPhongMaterial({ 
-            color: 0x2c3e50,  // Dark suit color
+            color: 0x8e44ad,  // Purple outfit
             shininess: 30
         });
         const skinMaterial = new THREE.MeshPhongMaterial({ 
-            color: 0xe8beac,  // Natural skin tone
+            color: 0xffe0bd,  // Lighter skin tone
             shininess: 20
         });
-        const shirtMaterial = new THREE.MeshPhongMaterial({
-            color: 0xffffff,  // White shirt
+        const hairMaterial = new THREE.MeshPhongMaterial({
+            color: 0x8B4513,  // Brown hair
             shininess: 40
         });
         
-        // More detailed torso (suit jacket)
+        // More detailed torso (female proportions)
         const torso = new THREE.Mesh(
-            new THREE.BoxGeometry(1, 1.5, 0.6),
+            new THREE.BoxGeometry(0.9, 1.4, 0.5),
             suitMaterial
         );
-        torso.position.y = 0.75;  // Lowered position
+        torso.position.y = 0.75;
         playerGroup.add(torso);
 
-        // Shirt collar
-        const collar = new THREE.Mesh(
-            new THREE.BoxGeometry(0.3, 0.2, 0.3),
-            shirtMaterial
-        );
-        collar.position.set(0, 1.4, 0.2);
-        playerGroup.add(collar);
-
-        // Head with better proportions
+        // Head with female features
         const head = new THREE.Group();
         const skull = new THREE.Mesh(
-            new THREE.SphereGeometry(0.3, 32, 32),
+            new THREE.SphereGeometry(0.28, 32, 32),
             skinMaterial
         );
         const face = new THREE.Mesh(
-            new THREE.BoxGeometry(0.6, 0.6, 0.3),
+            new THREE.BoxGeometry(0.55, 0.55, 0.25),
             skinMaterial
         );
         face.position.z = 0.1;
+        
+        // Add hair
+        const hair = new THREE.Mesh(
+            new THREE.SphereGeometry(0.32, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2),
+            hairMaterial
+        );
+        hair.rotation.x = Math.PI;
+        hair.position.y = 0.1;
+        
         head.add(skull);
         head.add(face);
-        head.position.y = 1.8;  // Adjusted height
+        head.add(hair);
+        head.position.y = 1.8;
         playerGroup.add(head);
 
-        // Updated arm creation with suit sleeves
+        // Updated arm creation with slimmer proportions
         const createArm = (isLeft) => {
             const arm = new THREE.Group();
             const upperArm = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.15, 0.12, 0.6),
+                new THREE.CylinderGeometry(0.12, 0.1, 0.6),
                 suitMaterial
             );
             const lowerArm = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.12, 0.11, 0.6),
+                new THREE.CylinderGeometry(0.1, 0.09, 0.6),
                 suitMaterial
             );
             const hand = new THREE.Mesh(
-                new THREE.SphereGeometry(0.12, 16, 16),
+                new THREE.SphereGeometry(0.1, 16, 16),
                 skinMaterial
             );
             
@@ -72,27 +74,27 @@ class Player {
             arm.add(lowerArm);
             arm.add(hand);
             
-            arm.position.set(isLeft ? -0.5 : 0.5, 1.4, 0);  // Adjusted position
+            arm.position.set(isLeft ? -0.5 : 0.5, 1.4, 0);
             return arm;
         };
         
         playerGroup.add(createArm(true));
         playerGroup.add(createArm(false));
 
-        // Updated legs with suit pants
+        // Updated legs with female proportions
         const createLeg = (isLeft) => {
             const leg = new THREE.Group();
             const upperLeg = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.18, 0.15, 0.8),
-                suitMaterial
-            );
-            const lowerLeg = new THREE.Mesh(
                 new THREE.CylinderGeometry(0.15, 0.13, 0.8),
                 suitMaterial
             );
+            const lowerLeg = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.13, 0.11, 0.8),
+                suitMaterial
+            );
             const shoe = new THREE.Mesh(
-                new THREE.BoxGeometry(0.2, 0.1, 0.4),
-                new THREE.MeshPhongMaterial({ color: 0x000000, shininess: 60 })  // Black shoes
+                new THREE.BoxGeometry(0.18, 0.1, 0.35),
+                new THREE.MeshPhongMaterial({ color: 0x000000, shininess: 60 })
             );
             
             upperLeg.position.y = -0.4;
@@ -104,7 +106,7 @@ class Player {
             leg.add(lowerLeg);
             leg.add(shoe);
             
-            leg.position.set(isLeft ? -0.3 : 0.3, 0.8, 0);  // Adjusted position
+            leg.position.set(isLeft ? -0.3 : 0.3, 0.8, 0);
             return leg;
         };
         
@@ -126,32 +128,43 @@ class Player {
     static animateRunning(game, delta, isRunning) {
         // Get legs by their position
         const legs = game.player.children.filter(child => 
-            child.position.y === 0.8 && (child.position.x === -0.2 || child.position.x === 0.2)
+            child.position.y === 0.8 && (child.position.x === -0.3 || child.position.x === 0.3)
         );
         
-        const frequency = isRunning ? 12 : 8;
-        const amplitude = isRunning ? 0.7 : 0.4;
+        // Reduced frequency for more natural movement
+        const frequency = isRunning ? 6 : 4;  // Reduced from 12/8 to 6/4
+        const amplitude = isRunning ? 0.6 : 0.35;  // Slightly reduced amplitude
+        
+        // Use delta time for smoother animation
+        const time = Date.now() * 0.005;  // Reduced time factor from 0.01 to 0.005
         
         legs.forEach((leg, index) => {
-            leg.rotation.x = Math.sin(Date.now() * 0.01 * frequency + index * Math.PI) * amplitude;
+            leg.rotation.x = Math.sin(time * frequency + index * Math.PI) * amplitude;
         });
 
         // Get arms by their position
         const arms = game.player.children.filter(child =>
-            child.position.y === 1.5 && (child.position.x === -0.45 || child.position.x === 0.45)
+            child.position.y === 1.4 && (child.position.x === -0.5 || child.position.x === 0.5)
         );
         
         arms.forEach((arm, index) => {
-            arm.rotation.x = -Math.sin(Date.now() * 0.01 * frequency + index * Math.PI) * amplitude;
-            arm.rotation.z = Math.cos(Date.now() * 0.01 * frequency + index * Math.PI) * (amplitude * 0.3);
+            // Opposite phase to legs for natural walking motion
+            arm.rotation.x = -Math.sin(time * frequency + index * Math.PI) * amplitude;
+            // Reduced side swing
+            arm.rotation.z = Math.cos(time * frequency + index * Math.PI) * (amplitude * 0.2);
         });
 
-        // Add slight body tilt when running
+        // Add slight body movement
         const torso = game.player.children[0];
         if (isRunning) {
-            torso.rotation.x = Math.sin(Date.now() * 0.01 * frequency) * 0.1;
+            // Slight forward lean when running
+            torso.rotation.x = 0.1 + Math.sin(time * frequency * 2) * 0.05;
+            // Slight side-to-side movement
+            torso.rotation.z = Math.sin(time * frequency) * 0.03;
         } else {
-            torso.rotation.x = Math.sin(Date.now() * 0.01 * frequency) * 0.05;
+            // Less movement when walking
+            torso.rotation.x = Math.sin(time * frequency * 2) * 0.03;
+            torso.rotation.z = Math.sin(time * frequency) * 0.02;
         }
     }
 

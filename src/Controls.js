@@ -1,6 +1,20 @@
 class Controls {
     static setupEventListeners(game) {
-        document.addEventListener('keydown', (event) => Controls.onKeyDown(game, event));
+        document.addEventListener('keydown', (event) => {
+            switch(event.code) {
+                case 'KeyW': game.moveForward = true; break;
+                case 'KeyS': game.moveBackward = true; break;
+                case 'KeyA': game.moveLeft = true; break;
+                case 'KeyD': game.moveRight = true; break;
+                case 'ShiftLeft': game.isRunning = true; break;
+                case 'Space':
+                    if (game.canJump) {
+                        game.velocity.y = 8;  // Increased from default (likely 5)
+                        game.canJump = false;
+                    }
+                    break;
+            }
+        });
         document.addEventListener('keyup', (event) => Controls.onKeyUp(game, event));
         document.addEventListener('mousemove', (event) => Controls.onMouseMove(game, event));
         document.addEventListener('click', () => Player.shoot(game));
@@ -15,17 +29,6 @@ class Controls {
             game.camera.updateProjectionMatrix();
             game.renderer.setSize(window.innerWidth, window.innerHeight);
         });
-    }
-
-    static onKeyDown(game, event) {
-        switch(event.code) {
-            case 'KeyW': game.moveForward = true; break;
-            case 'KeyS': game.moveBackward = true; break;
-            case 'KeyA': game.moveLeft = true; break;
-            case 'KeyD': game.moveRight = true; break;
-            case 'ShiftLeft': game.isRunning = true; break;
-            case 'Space': if(game.canJump) game.velocity.y = 5; game.canJump = false; break; // Reduced from 10 to 5
-        }
     }
 
     static onKeyUp(game, event) {

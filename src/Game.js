@@ -45,6 +45,9 @@ class Game {
         Environment.createMap(this);
         Controls.setupEventListeners(this);
         
+        // Set player starting position away from building
+        this.player.position.set(20, this.playerHeight, 20);
+        
         // Start game loop
         this.animate();
     }
