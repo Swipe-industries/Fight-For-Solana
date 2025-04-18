@@ -16,6 +16,8 @@ class Game {
         // Player properties
         this.playerHeight = 2;
         this.moveSpeed = 0.15;
+        this.runSpeed = 0.3;  // New running speed
+        this.isRunning = false;
         this.health = 100;
         this.ammo = 30;
         this.cameraOffset = new THREE.Vector3(0, 3, 8);
@@ -47,48 +49,108 @@ class Game {
     }
 
     createPlayer() {
-        // Create a simple humanoid figure
         const playerGroup = new THREE.Group();
         
-        // Body parts with better materials
-        const bodyMaterial = new THREE.MeshPhongMaterial({ color: 0x3498db });
-        const skinMaterial = new THREE.MeshPhongMaterial({ color: 0xf1c40f });
+        // More detailed body materials
+        const bodyMaterial = new THREE.MeshPhongMaterial({ 
+            color: 0x3498db,
+            shininess: 30
+        });
+        const skinMaterial = new THREE.MeshPhongMaterial({ 
+            color: 0xf1c40f,
+            shininess: 20
+        });
+        const clothMaterial = new THREE.MeshPhongMaterial({
+            color: 0x2c3e50,
+            shininess: 10
+        });
         
-        // Torso
+        // More detailed torso
         const torso = new THREE.Mesh(
-            new THREE.BoxGeometry(1, 1.5, 0.5),
-            bodyMaterial
+            new THREE.BoxGeometry(1, 1.5, 0.6),
+            clothMaterial
         );
         torso.position.y = 1.5;
         playerGroup.add(torso);
 
-        // Head
-        const head = new THREE.Mesh(
-            new THREE.SphereGeometry(0.4, 16, 16),
+        // More detailed head
+        const head = new THREE.Group();
+        const skull = new THREE.Mesh(
+            new THREE.SphereGeometry(0.4, 32, 32),
             skinMaterial
         );
+        const face = new THREE.Mesh(
+            new THREE.BoxGeometry(0.8, 0.8, 0.4),
+            skinMaterial
+        );
+        face.position.z = 0.1;
+        head.add(skull);
+        head.add(face);
         head.position.y = 2.7;
         playerGroup.add(head);
 
-        // Arms
-        const armGeometry = new THREE.BoxGeometry(0.25, 1, 0.25);
-        const leftArm = new THREE.Mesh(armGeometry, skinMaterial);
-        leftArm.position.set(-0.625, 2, 0);
-        playerGroup.add(leftArm);
+        // More detailed arms with joints
+        const createArm = (isLeft) => {
+            const arm = new THREE.Group();
+            const upperArm = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.15, 0.12, 0.8),
+                clothMaterial
+            );
+            const lowerArm = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.12, 0.11, 0.7),
+                skinMaterial
+            );
+            const hand = new THREE.Mesh(
+                new THREE.SphereGeometry(0.12, 16, 16),
+                skinMaterial
+            );
+            
+            upperArm.position.y = -0.4;
+            lowerArm.position.y = -1;
+            hand.position.y = -1.4;
+            
+            arm.add(upperArm);
+            arm.add(lowerArm);
+            arm.add(hand);
+            
+            arm.position.set(isLeft ? -0.625 : 0.625, 2.2, 0);
+            return arm;
+        };
+        
+        playerGroup.add(createArm(true));
+        playerGroup.add(createArm(false));
 
-        const rightArm = new THREE.Mesh(armGeometry, skinMaterial);
-        rightArm.position.set(0.625, 2, 0);
-        playerGroup.add(rightArm);
-
-        // Legs
-        const legGeometry = new THREE.BoxGeometry(0.25, 1, 0.25);
-        const leftLeg = new THREE.Mesh(legGeometry, bodyMaterial);
-        leftLeg.position.set(-0.3, 0.5, 0);
-        playerGroup.add(leftLeg);
-
-        const rightLeg = new THREE.Mesh(legGeometry, bodyMaterial);
-        rightLeg.position.set(0.3, 0.5, 0);
-        playerGroup.add(rightLeg);
+        // More detailed legs with joints
+        const createLeg = (isLeft) => {
+            const leg = new THREE.Group();
+            const upperLeg = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.18, 0.15, 0.9),
+                clothMaterial
+            );
+            const lowerLeg = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.15, 0.13, 0.8),
+                clothMaterial
+            );
+            const foot = new THREE.Mesh(
+                new THREE.BoxGeometry(0.2, 0.1, 0.3),
+                skinMaterial
+            );
+            
+            upperLeg.position.y = -0.45;
+            lowerLeg.position.y = -1.3;
+            foot.position.y = -1.75;
+            foot.position.z = 0.1;
+            
+            leg.add(upperLeg);
+            leg.add(lowerLeg);
+            leg.add(foot);
+            
+            leg.position.set(isLeft ? -0.3 : 0.3, 1.5, 0);
+            return leg;
+        };
+        
+        playerGroup.add(createLeg(true));
+        playerGroup.add(createLeg(false));
 
         // Add shadows
         playerGroup.traverse((object) => {
@@ -133,48 +195,155 @@ class Game {
     }
 
     createMap() {
-        // Create terrain with different colors and heights
-        const terrainGeometry = new THREE.PlaneGeometry(100, 100, 20, 20);
-        const vertices = terrainGeometry.attributes.position.array;
+        // Create ground plane with smaller size
+        const groundGeometry = new THREE.PlaneGeometry(100, 100);
         
-        // Generate random terrain heights
-        for (let i = 0; i < vertices.length; i += 3) {
-            vertices[i + 1] = Math.random() * 2; // Y coordinate
-        }
+        // Create realistic ground texture
+        const textureLoader = new THREE.TextureLoader();
+        const groundTexture = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/terrain/grasslight-big.jpg');
+        groundTexture.wrapS = groundTexture.wrapT = THREE.RepeatWrapping;
+        groundTexture.repeat.set(25, 25);
+        groundTexture.encoding = THREE.sRGBEncoding;
         
-        // Update geometry
-        terrainGeometry.computeVertexNormals();
-        
-        // Create gradient material with brighter, more natural colors
-        const terrainMaterial = new THREE.MeshStandardMaterial({
-            vertexColors: true,
-            flatShading: true,
+        const groundMaterial = new THREE.MeshStandardMaterial({
+            map: groundTexture,
             roughness: 0.8,
             metalness: 0.2
         });
-
-        // Add vertex colors based on height with brighter daylight colors
-        const colors = [];
-        for (let i = 0; i < vertices.length; i += 3) {
-            const height = vertices[i + 1];
-            if (height < 0.5) {
-                colors.push(0.4, 0.8, 0.3); // Brighter grass
-            } else if (height < 1) {
-                colors.push(0.8, 0.6, 0.4); // Lighter dirt
-            } else {
-                colors.push(0.9, 0.9, 0.9); // Lighter rock
-            }
-        }
-
-        terrainGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
         
-        const terrain = new THREE.Mesh(terrainGeometry, terrainMaterial);
-        terrain.rotation.x = -Math.PI / 2;
-        terrain.receiveShadow = true;
-        this.scene.add(terrain);
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+        this.scene.add(ground);
 
-        // Add obstacles and decorations
-        this.addObstacles();
+        // Create building
+        this.createBuilding();
+        
+        // Create boundary walls
+        this.createBoundary();
+        
+        // Add environmental decorations
+        this.addDecorations();
+    }
+
+    createBuilding() {
+        const building = new THREE.Group();
+        
+        // Main building structure
+        const wallsMaterial = new THREE.MeshPhongMaterial({
+            color: 0xcccccc,
+            shininess: 10
+        });
+        
+        // Ground floor
+        const walls = new THREE.Mesh(
+            new THREE.BoxGeometry(15, 4, 12),
+            wallsMaterial
+        );
+        walls.position.y = 2;
+        building.add(walls);
+        
+        // Roof
+        const roofGeometry = new THREE.ConeGeometry(11, 4, 4);
+        const roofMaterial = new THREE.MeshPhongMaterial({
+            color: 0x8B4513,
+            shininess: 5
+        });
+        const roof = new THREE.Mesh(roofGeometry, roofMaterial);
+        roof.position.y = 5;
+        roof.rotation.y = Math.PI / 4;
+        building.add(roof);
+        
+        // Basement
+        const basement = new THREE.Mesh(
+            new THREE.BoxGeometry(15, 4, 12),
+            wallsMaterial
+        );
+        basement.position.y = -2;
+        building.add(basement);
+        
+        // Create doors and windows
+        const doorGeometry = new THREE.BoxGeometry(1.5, 2.5, 0.1);
+        const doorMaterial = new THREE.MeshPhongMaterial({
+            color: 0x4a3520,
+            shininess: 30
+        });
+        
+        // Front door
+        const frontDoor = new THREE.Mesh(doorGeometry, doorMaterial);
+        frontDoor.position.set(0, 1.25, 6);
+        building.add(frontDoor);
+        
+        // Basement entrance
+        const basementDoor = new THREE.Mesh(doorGeometry, doorMaterial);
+        basementDoor.position.set(0, -1, 6);
+        building.add(basementDoor);
+        
+        // Windows
+        const windowGeometry = new THREE.BoxGeometry(1.5, 1.5, 0.1);
+        const windowMaterial = new THREE.MeshPhongMaterial({
+            color: 0x87CEEB,
+            shininess: 90,
+            opacity: 0.7,
+            transparent: true
+        });
+        
+        // Add windows to each wall
+        const windowPositions = [
+            [-5, 2, 6], [5, 2, 6],  // Front
+            [-5, 2, -6], [5, 2, -6],  // Back
+            [7.5, 2, -3], [7.5, 2, 3],  // Right
+            [-7.5, 2, -3], [-7.5, 2, 3]  // Left
+        ];
+        
+        windowPositions.forEach(pos => {
+            const window = new THREE.Mesh(windowGeometry, windowMaterial);
+            window.position.set(...pos);
+            if (Math.abs(pos[0]) === 7.5) {
+                window.rotation.y = Math.PI / 2;
+            }
+            building.add(window);
+        });
+        
+        // Add collision detection
+        building.traverse((object) => {
+            if (object instanceof THREE.Mesh) {
+                object.castShadow = true;
+                object.receiveShadow = true;
+                if (object !== frontDoor && object !== basementDoor) {
+                    this.collidableObjects.push(object);
+                }
+            }
+        });
+        
+        building.position.set(0, 0, 0);
+        this.scene.add(building);
+    }
+
+    createBoundary() {
+        const wallGeometry = new THREE.BoxGeometry(2, 6, 100);  // Reduced size
+        const wallMaterial = new THREE.MeshPhongMaterial({
+            color: 0x808080,
+            shininess: 10
+        });
+        
+        // Create four boundary walls with smaller dimensions
+        const walls = [
+            { pos: [-50, 3, 0], rot: 0 },    // Reduced from ±100 to ±50
+            { pos: [50, 3, 0], rot: 0 },
+            { pos: [0, 3, -50], rot: Math.PI / 2 },
+            { pos: [0, 3, 50], rot: Math.PI / 2 }
+        ];
+        
+        walls.forEach(wall => {
+            const boundaryWall = new THREE.Mesh(wallGeometry, wallMaterial);
+            boundaryWall.position.set(...wall.pos);
+            boundaryWall.rotation.y = wall.rot;
+            boundaryWall.castShadow = true;
+            boundaryWall.receiveShadow = true;
+            this.collidableObjects.push(boundaryWall);
+            this.scene.add(boundaryWall);
+        });
     }
 
     addObstacles() {
@@ -264,11 +433,11 @@ class Game {
             treeGroup.add(top);
             treeGroup.add(collisionMesh);
             
-            // Random position
+            // Random position with smaller range
             const position = new THREE.Vector3(
-                (Math.random() - 0.5) * 80,
+                (Math.random() - 0.5) * 40,  // Reduced from 80 to 40
                 1,
-                (Math.random() - 0.5) * 80
+                (Math.random() - 0.5) * 40
             );
             
             // Check if position is too close to other objects
@@ -356,6 +525,7 @@ class Game {
             case 'KeyS': this.moveBackward = true; break;
             case 'KeyA': this.moveLeft = true; break;
             case 'KeyD': this.moveRight = true; break;
+            case 'ShiftLeft': this.isRunning = true; break;
             case 'Space': if(this.canJump) this.velocity.y = 10; this.canJump = false; break;
         }
     }
@@ -366,7 +536,118 @@ class Game {
             case 'KeyS': this.moveBackward = false; break;
             case 'KeyA': this.moveLeft = false; break;
             case 'KeyD': this.moveRight = false; break;
+            case 'ShiftLeft': this.isRunning = false; break;
         }
+    }
+
+    updateMovement() {
+        const delta = 0.016;
+        
+        // Apply gravity
+        this.velocity.y -= 9.8 * delta;
+        
+        // Update player animation
+        if (this.moveForward || this.moveBackward || this.moveLeft || this.moveRight) {
+            this.animateRunning(delta, this.isRunning);
+        } else {
+            this.resetLegs();
+        }
+
+        // Store current position for collision detection
+        const currentPosition = this.player.position.clone();
+        
+        // Update Y position (vertical movement)
+        this.player.position.y += this.velocity.y * delta;
+        
+        // Floor collision
+        if(this.player.position.y < this.playerHeight) {
+            this.velocity.y = 0;
+            this.player.position.y = this.playerHeight;
+            this.canJump = true;
+        }
+
+        // Movement relative to player rotation
+        const direction = new THREE.Vector3();
+        
+        if(this.moveForward) direction.z -= 1;
+        if(this.moveBackward) direction.z += 1;
+        if(this.moveLeft) direction.x -= 1;
+        if(this.moveRight) direction.x += 1;
+
+        direction.normalize();
+        direction.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.targetRotation.y);
+        
+        // Calculate new position
+        const newPosition = this.player.position.clone();
+        // Use running speed when shift is pressed
+        const currentSpeed = this.isRunning ? this.runSpeed : this.moveSpeed;
+        newPosition.x += direction.x * currentSpeed;
+        newPosition.z += direction.z * currentSpeed;
+        
+        // Check for collisions at new position
+        if (!this.checkCollision(newPosition)) {
+            this.player.position.copy(newPosition);
+        } else {
+            // Try to slide along walls
+            const xOnlyPosition = this.player.position.clone();
+            xOnlyPosition.x += direction.x * this.moveSpeed;
+            
+            const zOnlyPosition = this.player.position.clone();
+            zOnlyPosition.z += direction.z * this.moveSpeed;
+            
+            // Check X-axis movement
+            if (!this.checkCollision(xOnlyPosition)) {
+                this.player.position.copy(xOnlyPosition);
+            }
+            
+            // Check Z-axis movement
+            if (!this.checkCollision(zOnlyPosition)) {
+                this.player.position.copy(zOnlyPosition);
+            }
+        }
+
+        // Update camera position
+        const idealOffset = this.cameraOffset.clone();
+        idealOffset.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.targetRotation.y);
+        
+        this.camera.position.copy(this.player.position).add(idealOffset);
+        this.camera.lookAt(
+            this.player.position.x,
+            this.player.position.y + 2,
+            this.player.position.z
+        );
+    }
+
+    animateRunning(delta, isRunning) {
+        const legs = this.player.children.filter(child => 
+            child.position.y === 1.5 && (child.position.x === 0.3 || child.position.x === -0.3)
+        );
+        
+        const frequency = isRunning ? 12 : 8;
+        const amplitude = isRunning ? 0.5 : 0.3;
+        
+        legs.forEach((leg, index) => {
+            leg.rotation.x = Math.sin(Date.now() * 0.01 * frequency + index * Math.PI) * amplitude;
+        });
+
+        const arms = this.player.children.filter(child =>
+            child.position.y === 2.2 && (child.position.x === 0.625 || child.position.x === -0.625)
+        );
+        
+        arms.forEach((arm, index) => {
+            arm.rotation.x = Math.sin(Date.now() * 0.01 * frequency + index * Math.PI) * amplitude;
+        });
+    }
+
+    resetLegs() {
+        const limbs = this.player.children.filter(child =>
+            (child.position.y === 1.5 && (child.position.x === 0.3 || child.position.x === -0.3)) ||
+            (child.position.y === 2.2 && (child.position.x === 0.625 || child.position.x === -0.625))
+        );
+        
+        limbs.forEach(limb => {
+            limb.rotation.x = 0;
+        });
     }
 
     onMouseMove(event) {
@@ -477,4 +758,4 @@ class Game {
 }
 
 // Start the game
-const game = new Game(); 
+const game = new Game();
