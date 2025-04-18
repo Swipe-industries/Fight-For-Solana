@@ -14,13 +14,13 @@ class Game {
         document.getElementById('game-container').appendChild(this.renderer.domElement);
 
         // Player properties
-        this.playerHeight = 1; // Reduced from 2 to 1 for better ground contact
-        this.moveSpeed = 0.15;
-        this.runSpeed = 0.3;  // New running speed
-        this.isRunning = false;
+        this.playerHeight = 1; 
+        this.moveSpeed = 0.25; // Increased normal speed
+        this.isSliding = false; // For sliding mechanic
+        this.slideDirection = null; // Track slide direction
+        this.slideMomentum = 0; // Track slide momentum
         this.health = 100;
         this.ammo = 30;
-        this.cameraOffset = new THREE.Vector3(0, 3, 8);
         
         // Movement state
         this.moveForward = false;
@@ -32,8 +32,8 @@ class Game {
 
         // Mouse look
         this.mouseSensitivity = 0.002;
-        // Initialize rotation properties
         this.targetRotation = new THREE.Vector3(0, 0, 0);
+        this.cameraPitch = 0; // Track vertical camera angle
         
         // Collision detection properties
         this.collidableObjects = [];
@@ -48,6 +48,14 @@ class Game {
         
         // Set player starting position away from building
         this.player.position.set(20, this.playerHeight, 20);
+        
+        // Ensure camera is properly positioned and oriented
+        this.camera.position.set(
+            this.player.position.x,
+            this.player.position.y + 1.7, // Eye level
+            this.player.position.z
+        );
+        this.camera.rotation.order = "YXZ";
         
         // Start game loop
         this.animate();

@@ -1,25 +1,25 @@
 class Physics {
     static checkCollision(game, position) {
-        // Check collisions in all directions
-        const directions = [
-            new THREE.Vector3(1, 0, 0),
-            new THREE.Vector3(-1, 0, 0),
-            new THREE.Vector3(0, 0, 1),
-            new THREE.Vector3(0, 0, -1),
-            new THREE.Vector3(1, 0, 1).normalize(),
-            new THREE.Vector3(-1, 0, 1).normalize(),
-            new THREE.Vector3(1, 0, -1).normalize(),
-            new THREE.Vector3(-1, 0, -1).normalize()
-        ];
-
-        for (const direction of directions) {
-            game.raycaster.set(
-                new THREE.Vector3(position.x, position.y + 1, position.z),
-                direction
-            );
-            const intersects = game.raycaster.intersectObjects(game.collidableObjects);
+        // Check for collisions with all collidable objects
+        for (const object of game.collidableObjects) {
+            // Get object's world position and size
+            const objectBox = new THREE.Box3().setFromObject(object);
             
-            if (intersects.length > 0 && intersects[0].distance < game.collisionRadius) {
+            // Create player bounding box at the new position
+            const playerBox = new THREE.Box3();
+            playerBox.min.set(
+                position.x - game.collisionRadius,
+                position.y - game.playerHeight,
+                position.z - game.collisionRadius
+            );
+            playerBox.max.set(
+                position.x + game.collisionRadius,
+                position.y + game.playerHeight,
+                position.z + game.collisionRadius
+            );
+            
+            // Check for intersection
+            if (playerBox.intersectsBox(objectBox)) {
                 return true;
             }
         }
@@ -29,12 +29,12 @@ class Physics {
     static updateMovement(game) {
         const delta = 0.016;
         
-        // Apply stronger gravity for faster jump cycle while maintaining height
-        game.velocity.y -= 20.0 * delta; // Increased from 15.0 to 20.0
+        // Apply gravity
+        game.velocity.y -= 20.0 * delta;
         
-        // Update player animation
-        if (game.moveForward || game.moveBackward || game.moveLeft || game.moveRight) {
-            Player.animateRunning(game, delta, game.isRunning);
+        // Update player animation - only animate when moving, not sliding
+        if ((game.moveForward || game.moveBackward || game.moveLeft || game.moveRight) && !game.isSliding) {
+            Player.animateRunning(game, delta, false);
         } else {
             Player.resetLegs(game);
         }
@@ -42,8 +42,8 @@ class Physics {
         // Store current position for collision detection
         const currentPosition = game.player.position.clone();
         
-        // Update Y position with faster movement
-        game.player.position.y += game.velocity.y * delta * 1.8; // Increased multiplier for faster movement
+        // Update Y position
+        game.player.position.y += game.velocity.y * delta * 1.8;
         
         // Floor collision
         if(game.player.position.y < game.playerHeight) {
@@ -65,10 +65,37 @@ class Physics {
         
         // Calculate new position
         const newPosition = game.player.position.clone();
-        // Use running speed when shift is pressed
-        const currentSpeed = game.isRunning ? game.runSpeed : game.moveSpeed;
-        newPosition.x += direction.x * currentSpeed;
-        newPosition.z += direction.z * currentSpeed;
+        
+        // Handle sliding mechanic
+        if (game.isSliding) {
+            // Apply sliding momentum
+            if (!game.slideDirection) {
+                // Start new slide in current direction
+                game.slideDirection = direction.clone();
+                game.slideMomentum = 0.4; // Initial slide momentum
+                
+                // Tilt player forward during slide
+                game.player.children[0].rotation.x = 0.3;
+            }
+            
+            // Apply slide momentum with decay
+            game.slideMomentum *= 0.95; // Gradual slowdown
+            
+            // Stop sliding if momentum is too low
+            if (game.slideMomentum < 0.05) {
+                game.isSliding = false;
+                game.slideDirection = null;
+                game.player.children[0].rotation.x = 0;
+            } else {
+                // Move in slide direction with momentum
+                newPosition.x += game.slideDirection.x * game.slideMomentum;
+                newPosition.z += game.slideDirection.z * game.slideMomentum;
+            }
+        } else {
+            // Normal movement with increased speed
+            newPosition.x += direction.x * game.moveSpeed;
+            newPosition.z += direction.z * game.moveSpeed;
+        }
         
         // Check for collisions at new position
         if (!Physics.checkCollision(game, newPosition)) {
@@ -92,15 +119,14 @@ class Physics {
             }
         }
 
-        // Update camera position
-        const idealOffset = game.cameraOffset.clone();
-        idealOffset.applyAxisAngle(new THREE.Vector3(0, 1, 0), game.targetRotation.y);
+        // After updating player position, update camera position
+        game.camera.position.x = game.player.position.x;
+        game.camera.position.z = game.player.position.z;
+        game.camera.position.y = game.player.position.y + 1.7; // Eye level
         
-        game.camera.position.copy(game.player.position).add(idealOffset);
-        game.camera.lookAt(
-            game.player.position.x,
-            game.player.position.y + 2,
-            game.player.position.z
-        );
+        // Ensure camera rotation is maintained
+        game.camera.rotation.order = "YXZ";
+        game.camera.rotation.y = game.player.rotation.y;
+        game.camera.rotation.x = game.cameraPitch;
     }
 }
