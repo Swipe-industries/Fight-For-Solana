@@ -29,8 +29,8 @@ class Physics {
     static updateMovement(game) {
         const delta = 0.016;
         
-        // Apply gravity
-        game.velocity.y -= 9.8 * delta;
+        // Apply stronger gravity for faster jump cycle while maintaining height
+        game.velocity.y -= 20.0 * delta; // Increased from 15.0 to 20.0
         
         // Update player animation
         if (game.moveForward || game.moveBackward || game.moveLeft || game.moveRight) {
@@ -42,8 +42,8 @@ class Physics {
         // Store current position for collision detection
         const currentPosition = game.player.position.clone();
         
-        // Update Y position (vertical movement)
-        game.player.position.y += game.velocity.y * delta;
+        // Update Y position with faster movement
+        game.player.position.y += game.velocity.y * delta * 1.8; // Increased multiplier for faster movement
         
         // Floor collision
         if(game.player.position.y < game.playerHeight) {

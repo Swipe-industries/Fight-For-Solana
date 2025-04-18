@@ -1,9 +1,9 @@
 class Game {
     constructor() {
         this.scene = new THREE.Scene();
-        // Add sky color
-        this.scene.background = new THREE.Color(0x87CEEB); // Light blue sky
-        this.scene.fog = new THREE.Fog(0x87CEEB, 20, 100); // Add distance fog for atmosphere
+        // Evening sky color
+        this.scene.background = new THREE.Color(0x2c3e50); // Darker blue-gray evening sky
+        this.scene.fog = new THREE.Fog(0x2c3e50, 20, 100); // Match fog to sky color
         
         this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         this.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -32,7 +32,8 @@ class Game {
 
         // Mouse look
         this.mouseSensitivity = 0.002;
-        this.targetRotation = new THREE.Vector3();
+        // Initialize rotation properties
+        this.targetRotation = new THREE.Vector3(0, 0, 0);
         
         // Collision detection properties
         this.collidableObjects = [];
@@ -44,6 +45,9 @@ class Game {
         Environment.setupLights(this);
         Environment.createMap(this);
         Controls.setupEventListeners(this);
+        
+        // Set player starting position away from building
+        this.player.position.set(20, this.playerHeight, 20);
         
         // Start game loop
         this.animate();
