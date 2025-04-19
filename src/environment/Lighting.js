@@ -1,3 +1,5 @@
+import * as THREE from 'three';
+
 class Lighting {
     static setup(game) {
         // Evening ambient light - warmer and dimmer

@@ -1,5 +1,11 @@
+import * as THREE from 'three';
+import { Player } from './Player.js';
+import { Environment } from './Environment.js';
+import { Controls } from './Controls.js';
+import { Physics } from './Physics.js';
+
 class Game {
-    constructor() {
+    constructor(container) {
         this.scene = new THREE.Scene();
         // Evening sky color
         this.scene.background = new THREE.Color(0x2c3e50); // Darker blue-gray evening sky
@@ -11,8 +17,10 @@ class Game {
         this.renderer.shadowMap.enabled = true;
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Softer shadows
         this.renderer.outputEncoding = THREE.sRGBEncoding; // Better color reproduction
-        document.getElementById('game-container').appendChild(this.renderer.domElement);
-
+        
+        // Make sure to use the container parameter instead of document.getElementById
+        container.appendChild(this.renderer.domElement);
+        
         // Player properties
         this.playerHeight = 1; 
         this.moveSpeed = 0.25; // Increased normal speed
@@ -66,4 +74,26 @@ class Game {
         Physics.updateMovement(this);
         this.renderer.render(this.scene, this.camera);
     }
+    
+    // Add a dispose method for cleanup
+    dispose() {
+        cancelAnimationFrame(this.animationFrameId);
+        Controls.removeEventListeners(this);
+        
+        // Dispose of Three.js resources
+        this.scene.traverse(object => {
+            if (object.geometry) object.geometry.dispose();
+            if (object.material) {
+                if (Array.isArray(object.material)) {
+                    object.material.forEach(material => material.dispose());
+                } else {
+                    object.material.dispose();
+                }
+            }
+        });
+        
+        this.renderer.dispose();
+    }
 }
+
+export { Game };

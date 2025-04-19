@@ -1,5 +1,18 @@
 {
+  "name": "fight-for-solana",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
   "dependencies": {
-    "three": "^0.175.0"
+    "three": "^0.175.0",
+    "next": "^14.0.3",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-three-fiber": "^6.0.13",
+    "@react-three/drei": "^9.88.13"
   }
 }

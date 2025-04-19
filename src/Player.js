@@ -1,3 +1,5 @@
+import * as THREE from 'three';
+
 class Player {
     static createPlayer(game) {
         const playerGroup = new THREE.Group();
@@ -282,3 +284,5 @@ class Player {
         }, 1000); // Shorter bullet lifetime
     }
 }
+
+export { Player };

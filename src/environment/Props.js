@@ -1,3 +1,5 @@
+import * as THREE from 'three';
+
 class Props {
     static createContainer(game, x, y, z, rotation = 0) {
         const container = new THREE.Group();

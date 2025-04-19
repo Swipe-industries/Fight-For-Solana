@@ -1,3 +1,6 @@
+import * as THREE from 'three';
+import { Player } from './Player.js';
+
 class Physics {
     static checkCollision(game, position) {
         // Check for collisions with all collidable objects
@@ -193,3 +196,5 @@ class Physics {
         game.camera.rotation.x = game.cameraPitch;
     }
 }
+
+export { Physics };

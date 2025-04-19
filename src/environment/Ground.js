@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import { Boundary } from './Boundary.js';
 
 class Ground {

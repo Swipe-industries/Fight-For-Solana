@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import { Decorations } from './Decorations.js';
 
 class Obstacles {
