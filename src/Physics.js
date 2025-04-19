@@ -8,14 +8,14 @@ class Physics {
             // Create player bounding box at the new position
             const playerBox = new THREE.Box3();
             playerBox.min.set(
-                position.x - game.collisionRadius,
+                position.x - game.collisionRadius * 0.9, // Slightly smaller collision box
                 position.y - game.playerHeight,
-                position.z - game.collisionRadius
+                position.z - game.collisionRadius * 0.9  // Slightly smaller collision box
             );
             playerBox.max.set(
-                position.x + game.collisionRadius,
+                position.x + game.collisionRadius * 0.9, // Slightly smaller collision box
                 position.y + game.playerHeight,
-                position.z + game.collisionRadius
+                position.z + game.collisionRadius * 0.9  // Slightly smaller collision box
             );
             
             // Check for intersection
@@ -26,12 +26,75 @@ class Physics {
         return false;
     }
 
+    // Add method to check if player is stuck at start
+    static checkPlayerStuck(game) {
+        // Count how many directions are blocked
+        let blockedDirections = 0;
+        const testDistance = game.moveSpeed * 2;
+        const directions = [
+            new THREE.Vector3(1, 0, 0),   // right
+            new THREE.Vector3(-1, 0, 0),  // left
+            new THREE.Vector3(0, 0, 1),   // forward
+            new THREE.Vector3(0, 0, -1)   // backward
+        ];
+        
+        for (const dir of directions) {
+            const testPos = game.player.position.clone().add(dir.multiplyScalar(testDistance));
+            if (Physics.checkCollision(game, testPos)) {
+                blockedDirections++;
+            }
+        }
+        
+        // If player is blocked in 3 or more directions, they're likely stuck
+        if (blockedDirections >= 3) {
+            // Find a safe position to teleport the player
+            const safePos = Physics.findSafePosition(game);
+            if (safePos) {
+                game.player.position.copy(safePos);
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    // Find a safe position for the player
+    static findSafePosition(game) {
+        // Try a few positions near the player
+        const searchRadius = 10;
+        const attempts = 10;
+        
+        for (let i = 0; i < attempts; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const distance = Math.random() * searchRadius;
+            const testPos = new THREE.Vector3(
+                game.player.position.x + Math.cos(angle) * distance,
+                game.player.position.y,
+                game.player.position.z + Math.sin(angle) * distance
+            );
+            
+            if (!Physics.checkCollision(game, testPos)) {
+                return testPos;
+            }
+        }
+        
+        // If all attempts fail, try a default safe position
+        const defaultPos = new THREE.Vector3(0, game.playerHeight, 0);
+        return !Physics.checkCollision(game, defaultPos) ? defaultPos : null;
+    }
+
     static updateMovement(game) {
         const delta = 0.016;
+        
+        // Check if player is stuck at game start (only run this once)
+        if (!game.checkedInitialPosition && game.gameTime > 1) {
+            game.checkedInitialPosition = true;
+            Physics.checkPlayerStuck(game);
+        }
         
         // Apply gravity
         game.velocity.y -= 20.0 * delta;
         
+        // Rest of the updateMovement method remains unchanged
         // Update player animation - only animate when moving, not sliding
         if ((game.moveForward || game.moveBackward || game.moveLeft || game.moveRight) && !game.isSliding) {
             Player.animateRunning(game, delta, false);
