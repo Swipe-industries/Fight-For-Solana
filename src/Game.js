@@ -48,6 +48,10 @@ class Game {
         this.collisionRadius = 0.8; // Character collision radius
         this.raycaster = new THREE.Raycaster();
         
+        // Add updateable objects array for animations
+        this.updateableObjects = [];
+        this.lastTime = performance.now();
+        
         // Initialize game components
         Player.createPlayer(this);
         Environment.setupLights(this);
@@ -57,89 +61,43 @@ class Game {
         // Set player starting position away from building
         this.player.position.set(20, this.playerHeight, 20);
         
-        // Create UI elements
-        this.createUI();
-        
         // Start game loop
         this.animate();
     }
-    
-    createUI() {
-        // Create controls UI if it doesn't exist
-        if (!document.querySelector('.controls-ui')) {
-            const controlsUI = document.createElement('div');
-            controlsUI.className = 'controls-ui';
-            controlsUI.style.position = 'absolute';
-            controlsUI.style.top = '20px';
-            controlsUI.style.right = '20px';
-            controlsUI.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
-            controlsUI.style.color = 'white';
-            controlsUI.style.padding = '10px';
-            controlsUI.style.borderRadius = '5px';
-            controlsUI.style.fontFamily = 'Arial, sans-serif';
-            
-            controlsUI.innerHTML = `
-                <div>WASD - Move</div>
-                <div>Space - Jump</div>
-                <div>Shift - Slide</div>
-                <div>K - Respawn</div>
-            `;
-            
-            document.body.appendChild(controlsUI);
-        }
-    }
 
     animate() {
-        requestAnimationFrame(() => this.animate());
+        const currentTime = performance.now();
+        const deltaTime = (currentTime - this.lastTime) / 1000; // Convert to seconds
+        this.lastTime = currentTime;
+
+        // Update all updateable objects
+        this.updateableObjects.forEach(obj => {
+            if (obj.userData && obj.userData.update) {
+                obj.userData.update(deltaTime);
+            }
+        });
+
+        // Update physics and render
         Physics.updateMovement(this);
         this.renderer.render(this.scene, this.camera);
+
+        requestAnimationFrame(() => this.animate());
     }
-    
-    respawnPlayer() {
-        // Reset player position
-        const safeDistance = 15;
-        let validPosition = false;
-        let attempts = 0;
-        const maxAttempts = 30;
 
-        while (attempts < maxAttempts && !validPosition) {
-            // Try a new random position
-            const x = (Math.random() - 0.5) * 80;
-            const z = (Math.random() - 0.5) * 80;
-            
-            // Check distance from all collidable objects
-            validPosition = true;
-            for (const obj of this.collidableObjects) {
-                if (obj.userData && obj.userData.isTree) {
-                    const dx = x - obj.position.x;
-                    const dz = z - obj.position.z;
-                    const distance = Math.sqrt(dx * dx + dz * dz);
-                    
-                    if (distance < safeDistance) {
-                        validPosition = false;
-                        break;
-                    }
-                }
-            }
-
-            if (validPosition) {
-                this.player.position.set(x, this.playerHeight, z);
-                this.velocity.set(0, 0, 0);
-                return;
-            }
-            
-            attempts++;
+    // Add method to cleanup updateable objects
+    removeUpdateableObject(object) {
+        const index = this.updateableObjects.indexOf(object);
+        if (index > -1) {
+            this.updateableObjects.splice(index, 1);
         }
-
-        // If no safe position found, spawn at origin
-        this.player.position.set(0, this.playerHeight, 0);
-        this.velocity.set(0, 0, 0);
     }
-    
-    // Add a dispose method for cleanup
+
     dispose() {
         cancelAnimationFrame(this.animationFrameId);
         Controls.removeEventListeners(this);
+        
+        // Clear updateable objects
+        this.updateableObjects = [];
         
         // Dispose of Three.js resources
         this.scene.traverse(object => {
