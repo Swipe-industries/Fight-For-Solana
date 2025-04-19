@@ -1,3 +1,5 @@
+import * as THREE from 'three';
+
 class Boundary {
     static create(game) {
         // Create fence sections around the boundary

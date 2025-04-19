@@ -1,3 +1,5 @@
+import * as THREE from 'three';
+
 class Characters {
     static addNPC(game) {
         // Create an NPC player using the same player creation method

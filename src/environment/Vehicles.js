@@ -1,3 +1,5 @@
+import * as THREE from 'three';
+
 class Vehicles {
     static createMilitaryTruck(game) {
         const truck = new THREE.Group();

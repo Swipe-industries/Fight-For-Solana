@@ -1,3 +1,5 @@
+import * as THREE from 'three';
+
 class Building {
     static create(game) {
         const building = new THREE.Group();

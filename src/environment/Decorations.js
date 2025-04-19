@@ -1,3 +1,5 @@
+import * as THREE from 'three';
+
 class Decorations {
     static add(game) {
         // More realistic trees with improved foliage and trunk

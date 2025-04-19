@@ -1,6 +1,10 @@
+import * as THREE from 'three';
+import { Player } from './Player.js';
+
 class Controls {
     static setupEventListeners(game) {
-        document.addEventListener('keydown', (event) => {
+        // Store handlers as properties of the game object so we can remove them later
+        game.keyDownHandler = (event) => {
             switch(event.code) {
                 case 'KeyW': game.moveForward = true; break;
                 case 'KeyS': game.moveBackward = true; break;
@@ -20,11 +24,17 @@ class Controls {
                     }
                     break;
             }
-        });
+        };
         
-        document.addEventListener('keyup', (event) => Controls.onKeyUp(game, event));
-        document.addEventListener('mousemove', (event) => Controls.onMouseMove(game, event));
-        document.addEventListener('click', () => Player.shoot(game));
+        game.keyUpHandler = (event) => Controls.onKeyUp(game, event);
+        game.mouseMoveHandler = (event) => Controls.onMouseMove(game, event);
+        game.clickHandler = () => Player.shoot(game);
+        
+        // Add event listeners with the stored handlers
+        document.addEventListener('keydown', game.keyDownHandler);
+        document.addEventListener('keyup', game.keyUpHandler);
+        document.addEventListener('mousemove', game.mouseMoveHandler);
+        document.addEventListener('click', game.clickHandler);
 
         // Lock pointer on click
         game.renderer.domElement.addEventListener('click', () => {
@@ -69,4 +79,15 @@ class Controls {
             game.camera.rotation.x = game.cameraPitch;
         }
     }
+    
+    // Updated removeEventListeners method
+    static removeEventListeners(game) {
+        if (game.keyDownHandler) document.removeEventListener('keydown', game.keyDownHandler);
+        if (game.keyUpHandler) document.removeEventListener('keyup', game.keyUpHandler);
+        if (game.mouseMoveHandler) document.removeEventListener('mousemove', game.mouseMoveHandler);
+        if (game.clickHandler) document.removeEventListener('click', game.clickHandler);
+    }
 }
+
+// Export the Controls class
+export { Controls };
