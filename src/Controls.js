@@ -3,7 +3,6 @@ import { Player } from './Player.js';
 
 class Controls {
     static setupEventListeners(game) {
-        // Store handlers as properties of the game object so we can remove them later
         game.keyDownHandler = (event) => {
             switch(event.code) {
                 case 'KeyW': game.moveForward = true; break;
@@ -11,7 +10,6 @@ class Controls {
                 case 'KeyA': game.moveLeft = true; break;
                 case 'KeyD': game.moveRight = true; break;
                 case 'ShiftLeft': 
-                    // Only start sliding if player is moving and not already sliding
                     if ((game.moveForward || game.moveBackward || game.moveLeft || game.moveRight) 
                         && !game.isSliding && game.canJump) {
                         game.isSliding = true;
@@ -24,7 +22,68 @@ class Controls {
                     }
                     break;
                 case 'KeyK':
-                    game.respawnPlayer();
+                    // Instant death (suicide)
+                    game.health = 0;
+                    document.getElementById('health').textContent = `Health: ${game.health}`;
+                    
+                    // Short delay before respawn for effect
+                    setTimeout(() => {
+                        // Reset player stats
+                        game.health = 100;
+                        game.ammo = 30;
+                        document.getElementById('health').textContent = `Health: ${game.health}`;
+                        document.getElementById('ammo').textContent = `Ammo: ${game.ammo}`;
+                        
+                        // Reset movement states
+                        game.moveForward = false;
+                        game.moveBackward = false;
+                        game.moveLeft = false;
+                        game.moveRight = false;
+                        game.isSliding = false;
+                        game.velocity.set(0, 0, 0);
+                        
+                        // Find safe spawn position
+                        const safeDistance = 15;
+                        let validPosition = false;
+                        let attempts = 0;
+                        const maxAttempts = 30;
+
+                        while (attempts < maxAttempts && !validPosition) {
+                            validPosition = true;
+                            const x = (Math.random() - 0.5) * 80;
+                            const z = (Math.random() - 0.5) * 80;
+                            
+                            // Check distance from building center
+                            if (Math.sqrt(x * x + z * z) < 20) {
+                                validPosition = false;
+                                attempts++;
+                                continue;
+                            }
+                            
+                            // Check distance from all collidable objects
+                            for (const obj of game.collidableObjects) {
+                                const dx = x - obj.position.x;
+                                const dz = z - obj.position.z;
+                                const distance = Math.sqrt(dx * dx + dz * dz);
+                                
+                                if (distance < safeDistance) {
+                                    validPosition = false;
+                                    break;
+                                }
+                            }
+
+                            if (validPosition) {
+                                game.player.position.set(x, game.playerHeight, z);
+                                break;
+                            }
+                            attempts++;
+                        }
+
+                        // If no safe position found, use fallback position
+                        if (!validPosition) {
+                            game.player.position.set(20, game.playerHeight, 20);
+                        }
+                    }, 500);
                     break;
             }
         };
