@@ -85,38 +85,100 @@ class Skyline {
     static createSkyscraper() {
         const building = new THREE.Group();
         
-        // Reduced building properties
-        const height = 20 + Math.random() * 40; // Smaller height range
-        const width = 4 + Math.random() * 8;    // Smaller width range
-        const depth = 4 + Math.random() * 8;    // Smaller depth range
+        // Building dimensions
+        const height = 20 + Math.random() * 40;
+        const width = 4 + Math.random() * 8;
+        const depth = 4 + Math.random() * 8;
         
-        // Simplified building material
-        const glassMaterial = new THREE.MeshPhongMaterial({
-            color: new THREE.Color(0.3, 0.3, 0.4),
-            shininess: 90,
-            transparent: true,
-            opacity: 0.8,
-            emissive: new THREE.Color(0.1, 0.1, 0.2)
-        });
+        // Simplified building types with basic materials
+        const buildingTypes = [
+            {   // Modern Glass Office Building
+                material: new THREE.MeshPhongMaterial({
+                    color: 0x88ccff,
+                    shininess: 50,
+                    transparent: true,
+                    opacity: 0.9,
+                }),
+                windowPattern: 'grid'
+            },
+            {   // Residential Building
+                material: new THREE.MeshPhongMaterial({
+                    color: 0xe0c080,
+                    shininess: 30
+                }),
+                windowPattern: 'residential'
+            }
+        ];
+    
+        const buildingType = buildingTypes[Math.floor(Math.random() * buildingTypes.length)];
         
-        // Simplified building structure - only using basic shapes
+        // Main structure
         const mainStructure = new THREE.Mesh(
             new THREE.BoxGeometry(width, height, depth),
-            glassMaterial
+            buildingType.material
         );
         mainStructure.position.y = height/2;
-        
         building.add(mainStructure);
-        
-        // Simplified window lights - reduced probability
-        if (Math.random() > 0.6) {
-            const windowLights = new THREE.PointLight(
-                new THREE.Color(0.9, 0.9, 0.7),
-                0.05,
-                15
+    
+        // Simplified window material
+        const windowMaterial = new THREE.MeshBasicMaterial({
+            color: 0xffffcc,
+        });
+    
+        // Add windows based on pattern
+        if (buildingType.windowPattern === 'grid') {
+            // Office building - fewer, larger windows for better performance
+            const windowSize = 0.6;
+            const spacing = 1.2;
+            
+            for (let y = 2; y < height - 2; y += spacing) {
+                for (let x = -width/2 + 1; x < width/2 - 1; x += spacing) {
+                    // Only add windows to front and back
+                    const window = new THREE.Mesh(
+                        new THREE.PlaneGeometry(windowSize, windowSize),
+                        windowMaterial
+                    );
+                    window.position.set(x, y, depth/2 + 0.01);
+                    building.add(window);
+    
+                    // Back windows
+                    const backWindow = window.clone();
+                    backWindow.position.z = -depth/2 - 0.01;
+                    backWindow.rotation.y = Math.PI;
+                    building.add(backWindow);
+                }
+            }
+        } else {
+            // Residential building - larger, spaced out windows
+            const windowWidth = 1.0;
+            const windowHeight = 1.4;
+            const spacing = 2.5;
+            
+            for (let y = 2; y < height - 2; y += spacing) {
+                for (let x = -width/2 + 1.5; x < width/2 - 1; x += spacing) {
+                    const window = new THREE.Mesh(
+                        new THREE.PlaneGeometry(windowWidth, windowHeight),
+                        Math.random() > 0.3 ? windowMaterial : windowMaterial.clone().color.setHex(0x666666)
+                    );
+                    window.position.set(x, y, depth/2 + 0.01);
+                    building.add(window);
+    
+                    const backWindow = window.clone();
+                    backWindow.position.z = -depth/2 - 0.01;
+                    backWindow.rotation.y = Math.PI;
+                    building.add(backWindow);
+                }
+            }
+        }
+    
+        // Simplified spire for tall buildings
+        if (height > 40 && Math.random() > 0.5) {
+            const spire = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.1, 0.3, height * 0.2, 8),
+                new THREE.MeshPhongMaterial({ color: 0x888888 })
             );
-            windowLights.position.set(0, height * 0.6, 0);
-            building.add(windowLights);
+            spire.position.y = height + (height * 0.2)/2;
+            building.add(spire);
         }
         
         return building;
