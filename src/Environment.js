@@ -11,6 +11,7 @@ import { Decorations } from './environment/Decorations.js';
 import { Characters } from './environment/Characters.js';
 import { Vehicles } from './environment/Vehicles.js';
 import { Props } from './environment/Props.js';
+import { Skyline } from './environment/Skyline.js'; // Add this import
 
 class Environment {
     static setupLights(game) {
@@ -20,6 +21,9 @@ class Environment {
     static createMap(game) {
         // Create ground
         Environment.createGround(game);
+        
+        // Add Dubai skyline first (behind everything)
+        Environment.createSkyline(game);
         
         // Create building
         Environment.createBuilding(game);
@@ -33,8 +37,8 @@ class Environment {
         // Add military truck
         Environment.createMilitaryTruck(game);
 
-        // Add a container near the boundary (moved further away from player start)
-        Environment.createContainer(game, 45, 0, 45, Math.PI / 4); // Positioned in far corner, rotated 45 degrees
+        // Add a container near the boundary
+        Environment.createContainer(game, 45, 0, 45, Math.PI / 4);
     }
 
     static createGround(game) {
@@ -67,6 +71,10 @@ class Environment {
 
     static createContainer(game, x, y, z, rotation = 0) {
         return Props.createContainer(game, x, y, z, rotation);
+    }
+
+    static createSkyline(game) {
+        Skyline.create(game);
     }
 }
 

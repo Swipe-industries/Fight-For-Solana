@@ -110,16 +110,24 @@ class Building {
     }
 
     static createEntrance(building) {
-        // Create entrance - wider doorway
-        const entranceGeometry = new THREE.BoxGeometry(3, 3, 1);
-        const entranceMaterial = new THREE.MeshBasicMaterial({
-            color: 0x000000,
+        // Create entrance to the building
+        const doorWidth = 2.5;
+        const doorHeight = 3.5;
+        const doorGeometry = new THREE.BoxGeometry(doorWidth, doorHeight, 0.5);
+        const doorMaterial = new THREE.MeshPhongMaterial({
+            color: 0x222222,
             transparent: true,
-            opacity: 0.0
+            opacity: 0.7,
+            emissive: 0x111111
         });
-        const entrance = new THREE.Mesh(entranceGeometry, entranceMaterial);
-        entrance.position.set(0, 1.5, 7.5);
-        building.add(entrance);
+        const door = new THREE.Mesh(doorGeometry, doorMaterial);
+        door.position.set(0, doorHeight/2, 7.5); // Using actual building depth (15/2)
+        building.add(door);
+        
+        // Add entrance light
+        const entranceLight = new THREE.PointLight(0xffffaa, 0.8, 10);
+        entranceLight.position.set(0, doorHeight, 7.5);
+        building.add(entranceLight);
         
         // Add door frame
         const doorFrameMaterial = new THREE.MeshPhongMaterial({
