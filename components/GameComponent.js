@@ -46,9 +46,11 @@ export default function GameComponent() {
         
         instructions.innerHTML = `
             <p>WASD - Move</p>
-            <p>Mouse - Aim</p>
-            <p>Left Click - Shoot</p>
             <p>Space - Jump</p>
+            <p>Mouse - Right Click - Aim</p>
+            <p>Mouse - Left Click - Shoot</p>
+            <p>Shift - Slide</p>
+            <p>K - Respawn</p>
         `;
         
         document.body.appendChild(instructions);
