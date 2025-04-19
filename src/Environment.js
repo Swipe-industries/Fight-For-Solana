@@ -29,6 +29,7 @@ class Environment {
         game.scene.add(hemiLight);
     }
 
+
     static createMap(game) {
         // Create ground
         Environment.createGround(game);
@@ -356,30 +357,216 @@ class Environment {
     }
 
     static createBoundary(game) {
-        const wallGeometry = new THREE.BoxGeometry(2, 6, 100);  // Reduced size
-        const wallMaterial = new THREE.MeshPhongMaterial({
-            color: 0x808080,
-            shininess: 10
-        });
-        
-        // Create four boundary walls with smaller dimensions
-        const walls = [
-            { pos: [-50, 3, 0], rot: 0 },    // Reduced from ±100 to ±50
-            { pos: [50, 3, 0], rot: 0 },
-            { pos: [0, 3, -50], rot: Math.PI / 2 },
-            { pos: [0, 3, 50], rot: Math.PI / 2 }
-        ];
-        
-        walls.forEach(wall => {
-            const boundaryWall = new THREE.Mesh(wallGeometry, wallMaterial);
-            boundaryWall.position.set(...wall.pos);
-            boundaryWall.rotation.y = wall.rot;
-            boundaryWall.castShadow = true;
-            boundaryWall.receiveShadow = true;
-            game.collidableObjects.push(boundaryWall);
-            game.scene.add(boundaryWall);
-        });
+        // Create fence sections
+        const createFenceSection = (x, z, rotation) => {
+            const fenceGroup = new THREE.Group();
+            const postMaterial = new THREE.MeshPhongMaterial({
+                color: 0x2c3e50,  // Dark steel color
+                metalness: 0.7,
+                roughness: 0.3
+            });
+            
+            // Main vertical posts
+            const postGeometry = new THREE.CylinderGeometry(0.1, 0.1, 6, 8);
+            const mainPost = new THREE.Mesh(postGeometry, postMaterial);
+            mainPost.position.y = 3;
+            fenceGroup.add(mainPost);
+    
+            // Horizontal bars (2 bars)
+            const barGeometry = new THREE.CylinderGeometry(0.05, 0.05, 4, 8);
+            const positions = [2, 4]; // Heights for the horizontal bars
+            
+            positions.forEach(height => {
+                const bar = new THREE.Mesh(barGeometry, postMaterial);
+                bar.rotation.z = Math.PI / 2;
+                bar.position.set(2, height, 0);
+                fenceGroup.add(bar);
+            });
+    
+            // Vertical spears between posts (decorative elements)
+            for (let i = 0; i < 5; i++) {
+                // Main vertical bar
+                const spearBar = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.03, 0.03, 4, 8),
+                    postMaterial
+                );
+                spearBar.position.set(0.8 + (i * 0.8), 4, 0);
+                fenceGroup.add(spearBar);
+    
+                // Spear tip
+                const spearTip = new THREE.Mesh(
+                    new THREE.ConeGeometry(0.06, 0.3, 8),
+                    postMaterial
+                );
+                spearTip.position.set(0.8 + (i * 0.8), 6.15, 0);
+                fenceGroup.add(spearTip);
+            }
+    
+            // Add collision box for the fence section
+            const collisionGeometry = new THREE.BoxGeometry(4, 6, 0.3);
+            const collisionMaterial = new THREE.MeshBasicMaterial({ visible: false });
+            const collisionMesh = new THREE.Mesh(collisionGeometry, collisionMaterial);
+            collisionMesh.position.set(2, 3, 0);
+            fenceGroup.add(collisionMesh);
+            game.collidableObjects.push(collisionMesh);
+    
+            // Position and rotate the fence section
+            fenceGroup.position.set(x, 0, z);
+            fenceGroup.rotation.y = rotation;
+            
+            // Add shadows
+            fenceGroup.traverse((object) => {
+                if (object instanceof THREE.Mesh) {
+                    object.castShadow = true;
+                    object.receiveShadow = true;
+                }
+            });
+    
+            return fenceGroup;
+        };
+    
+        // Create fence sections around the boundary
+        const fenceSpacing = 4; // Distance between fence sections
+        const mapSize = 100; // Total map size
+        const sections = Math.floor(mapSize / fenceSpacing);
+    
+        // Create fences for all four sides
+        for (let i = 0; i < sections; i++) {
+            const position = (i * fenceSpacing) - (mapSize / 2);
+    
+            // North wall
+            game.scene.add(createFenceSection(position, -mapSize/2, 0));
+            
+            // South wall
+            game.scene.add(createFenceSection(position, mapSize/2, Math.PI));
+            
+            // East wall
+            game.scene.add(createFenceSection(mapSize/2, position, Math.PI * 1.5));
+            
+            // West wall
+            game.scene.add(createFenceSection(-mapSize/2, position, Math.PI * 0.5));
+        }
     }
+
+    static createGround(game) {
+        // Create extended ground plane (larger than playable area)
+        const groundGeometry = new THREE.PlaneGeometry(200, 200);
+        
+        // Create realistic ground texture
+        const textureLoader = new THREE.TextureLoader();
+        const groundTexture = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/terrain/grasslight-big.jpg');
+        groundTexture.wrapS = groundTexture.wrapT = THREE.RepeatWrapping;
+        groundTexture.repeat.set(50, 50);
+        groundTexture.encoding = THREE.sRGBEncoding;
+        
+        const groundMaterial = new THREE.MeshStandardMaterial({
+            map: groundTexture,
+            roughness: 0.8,
+            metalness: 0.2
+        });
+        
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+        game.scene.add(ground);
+        
+        // Create trees in different layers
+        const createTreesInArea = (minRadius, maxRadius, count) => {
+            for (let i = 0; i < count; i++) {
+                const treeGroup = new THREE.Group();
+                
+                // Tree trunk
+                const trunk = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.3, 0.5, 3, 12),
+                    new THREE.MeshPhongMaterial({ 
+                        color: 0x8B4513,
+                        shininess: 3,
+                        flatShading: true
+                    })
+                );
+                
+                // Only add collision for trees inside playable area
+                if (maxRadius <= 40) {
+                    const collisionMesh = new THREE.Mesh(
+                        new THREE.CylinderGeometry(1.5, 1.5, 6, 8),
+                        new THREE.MeshBasicMaterial({ visible: false })
+                    );
+                    collisionMesh.position.y = 3;
+                    treeGroup.add(collisionMesh);
+                    game.collidableObjects.push(collisionMesh);
+                }
+                
+                // Create foliage layers
+                const createFoliage = (y, scale) => {
+                    const foliage = new THREE.Mesh(
+                        new THREE.IcosahedronGeometry(1.5 * scale, 1),
+                        new THREE.MeshPhongMaterial({ 
+                            color: new THREE.Color(0x2D4F2D).lerp(
+                                new THREE.Color(0x4F7942), 
+                                0.3 + Math.random() * 0.4
+                            ),
+                            shininess: 3,
+                            flatShading: true
+                        })
+                    );
+                    foliage.position.set(
+                        (Math.random() - 0.5) * 0.7,
+                        y - 0.5,
+                        (Math.random() - 0.5) * 0.7
+                    );
+                    foliage.scale.set(
+                        0.9 + Math.random() * 0.2,
+                        1,
+                        0.9 + Math.random() * 0.2
+                    );
+                    return foliage;
+                };
+                
+                // Add foliage layers
+                treeGroup.add(createFoliage(3.5, 1.0));
+                treeGroup.add(createFoliage(4.5, 0.85));
+                treeGroup.add(createFoliage(5.3, 0.7));
+                treeGroup.add(createFoliage(6.0, 0.5));
+                
+                treeGroup.add(trunk);
+                
+                // Position the tree
+                const angle = Math.random() * Math.PI * 2;
+                const radius = minRadius + Math.random() * (maxRadius - minRadius);
+                treeGroup.position.set(
+                    Math.cos(angle) * radius,
+                    1.5,
+                    Math.sin(angle) * radius
+                );
+                
+                // Random rotation and tilt
+                treeGroup.rotation.y = Math.random() * Math.PI * 2;
+                treeGroup.rotation.x = (Math.random() - 0.5) * 0.05;
+                treeGroup.rotation.z = (Math.random() - 0.5) * 0.05;
+                
+                // Add shadows
+                treeGroup.traverse((object) => {
+                    if (object instanceof THREE.Mesh) {
+                        object.castShadow = true;
+                        object.receiveShadow = true;
+                    }
+                });
+                
+                game.scene.add(treeGroup);
+            }
+        };
+    
+        // Create trees in different layers with increased density
+        createTreesInArea(0, 40, 15);     // Inner playable area
+        createTreesInArea(50, 70, 30);    // Just outside the fence
+        createTreesInArea(70, 90, 40);    // Middle background
+        createTreesInArea(90, 110, 50);   // Far background
+        
+        // Create boundary walls
+        Environment.createBoundary(game);
+    }
+    
+    
 
     static addObstacles(game) {
         // Create various obstacles with brighter, more vibrant colors
