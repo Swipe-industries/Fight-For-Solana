@@ -37,9 +37,6 @@ class Environment {
         // Add military truck
         Environment.createMilitaryTruck(game);
 
-        // Add destroyed tank
-        Environment.createDestroyedTank(game);
-
         // Add a container near the boundary
         Environment.createContainer(game, 45, 0, 45, Math.PI / 4);
     }
@@ -70,10 +67,6 @@ class Environment {
 
     static createMilitaryTruck(game) {
         Vehicles.createMilitaryTruck(game);
-    }
-
-    static createDestroyedTank(game) {
-        Vehicles.createDestroyedTank(game);
     }
 
     static createContainer(game, x, y, z, rotation = 0) {
