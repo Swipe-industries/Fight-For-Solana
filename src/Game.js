@@ -57,22 +57,83 @@ class Game {
         // Set player starting position away from building
         this.player.position.set(20, this.playerHeight, 20);
         
-        // Ensure camera is properly positioned and oriented
-        this.camera.position.set(
-            this.player.position.x,
-            this.player.position.y + 1.7, // Eye level
-            this.player.position.z
-        );
-        this.camera.rotation.order = "YXZ";
+        // Create UI elements
+        this.createUI();
         
         // Start game loop
         this.animate();
+    }
+    
+    createUI() {
+        // Create controls UI if it doesn't exist
+        if (!document.querySelector('.controls-ui')) {
+            const controlsUI = document.createElement('div');
+            controlsUI.className = 'controls-ui';
+            controlsUI.style.position = 'absolute';
+            controlsUI.style.top = '20px';
+            controlsUI.style.right = '20px';
+            controlsUI.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+            controlsUI.style.color = 'white';
+            controlsUI.style.padding = '10px';
+            controlsUI.style.borderRadius = '5px';
+            controlsUI.style.fontFamily = 'Arial, sans-serif';
+            
+            controlsUI.innerHTML = `
+                <div>WASD - Move</div>
+                <div>Space - Jump</div>
+                <div>Shift - Slide</div>
+                <div>K - Respawn</div>
+            `;
+            
+            document.body.appendChild(controlsUI);
+        }
     }
 
     animate() {
         requestAnimationFrame(() => this.animate());
         Physics.updateMovement(this);
         this.renderer.render(this.scene, this.camera);
+    }
+    
+    respawnPlayer() {
+        // Reset player position
+        const safeDistance = 15;
+        let validPosition = false;
+        let attempts = 0;
+        const maxAttempts = 30;
+
+        while (attempts < maxAttempts && !validPosition) {
+            // Try a new random position
+            const x = (Math.random() - 0.5) * 80;
+            const z = (Math.random() - 0.5) * 80;
+            
+            // Check distance from all collidable objects
+            validPosition = true;
+            for (const obj of this.collidableObjects) {
+                if (obj.userData && obj.userData.isTree) {
+                    const dx = x - obj.position.x;
+                    const dz = z - obj.position.z;
+                    const distance = Math.sqrt(dx * dx + dz * dz);
+                    
+                    if (distance < safeDistance) {
+                        validPosition = false;
+                        break;
+                    }
+                }
+            }
+
+            if (validPosition) {
+                this.player.position.set(x, this.playerHeight, z);
+                this.velocity.set(0, 0, 0);
+                return;
+            }
+            
+            attempts++;
+        }
+
+        // If no safe position found, spawn at origin
+        this.player.position.set(0, this.playerHeight, 0);
+        this.velocity.set(0, 0, 0);
     }
     
     // Add a dispose method for cleanup

@@ -2,9 +2,15 @@ import * as THREE from 'three';
 
 class Decorations {
     static add(game) {
+        const minTreeDistance = 15; // Minimum distance between trees
+        const attempts = 20; // Maximum placement attempts per tree
+        const trees = [];
+        
         // More realistic trees with improved foliage and trunk
-        for (let i = 0; i < 15; i++) {
+        for (let i = 0; i < 8; i++) {  // Reduced from 15 to 8 trees
+            // When creating trees
             const treeGroup = new THREE.Group();
+            treeGroup.userData.isTree = true; // Add this line to identify trees
             
             // Tree trunk with bark-like texture
             const trunkGeometry = new THREE.CylinderGeometry(0.3, 0.5, 3, 12);
@@ -15,11 +21,12 @@ class Decorations {
             });
             const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
             
-            // Collision cylinder for the whole tree
-            const collisionGeometry = new THREE.CylinderGeometry(1.5, 1.5, 6, 8);
+            // Reduced collision cylinder for trees
+            const collisionGeometry = new THREE.CylinderGeometry(0.8, 0.8, 6, 8); // Reduced from 1.5 to 0.8
             const collisionMaterial = new THREE.MeshBasicMaterial({ visible: false });
             const collisionMesh = new THREE.Mesh(collisionGeometry, collisionMaterial);
             collisionMesh.position.y = 3;
+            collisionMesh.userData.isTree = true;  // Add this line
             
             // Multiple layers of foliage with more natural shapes
             const createFoliage = (y, scale) => {
@@ -64,11 +71,11 @@ class Decorations {
             treeGroup.add(trunk);
             treeGroup.add(collisionMesh);
             
-            // Random position with better distribution
+            // Random position with restricted distribution
             const position = new THREE.Vector3(
-                (Math.random() - 0.5) * 80,
+                (Math.random() - 0.5) * 40,  // Reduced from 80 to 40
                 1.5,
-                (Math.random() - 0.5) * 80
+                (Math.random() - 0.5) * 40   // Reduced from 80 to 40
             );
             
             // Check if position is too close to other objects

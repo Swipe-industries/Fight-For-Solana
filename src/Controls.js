@@ -23,6 +23,9 @@ class Controls {
                         game.canJump = false;
                     }
                     break;
+                case 'KeyK':
+                    game.respawnPlayer();
+                    break;
             }
         };
         
