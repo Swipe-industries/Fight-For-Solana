@@ -2,18 +2,15 @@ import * as THREE from 'three';
 
 class Decorations {
     static add(game) {
-        const minTreeDistance = 15; // Minimum distance between trees
-        const attempts = 20; // Maximum placement attempts per tree
-        const trees = [];
+        const minTreeDistance = 15;
         
-        // More realistic trees with improved foliage and trunk
-        for (let i = 0; i < 8; i++) {  // Reduced from 15 to 8 trees
-            // When creating trees
+        // Single tree creation function
+        const createTree = (game) => {
             const treeGroup = new THREE.Group();
-            treeGroup.userData.isTree = true; // Add this line to identify trees
+            treeGroup.userData.isTree = true;
             
-            // Tree trunk with bark-like texture
-            const trunkGeometry = new THREE.CylinderGeometry(0.3, 0.5, 3, 12);
+            // Tree trunk
+            const trunkGeometry = new THREE.CylinderGeometry(0.3, 0.5, 5, 12);
             const trunkMaterial = new THREE.MeshPhongMaterial({ 
                 color: 0x8B4513,
                 shininess: 3,
@@ -21,95 +18,86 @@ class Decorations {
             });
             const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
             
-            // Reduced collision cylinder for trees
-            const collisionGeometry = new THREE.CylinderGeometry(0.8, 0.8, 6, 8); // Reduced from 1.5 to 0.8
-            const collisionMaterial = new THREE.MeshBasicMaterial({ visible: false });
-            const collisionMesh = new THREE.Mesh(collisionGeometry, collisionMaterial);
+            // Collision cylinder
+            const collisionGeometry = new THREE.CylinderGeometry(0.8, 0.8, 6, 8);
+            const collisionMesh = new THREE.Mesh(
+                collisionGeometry,
+                new THREE.MeshBasicMaterial({ visible: false })
+            );
             collisionMesh.position.y = 3;
-            collisionMesh.userData.isTree = true;  // Add this line
+            collisionMesh.userData.isTree = true;
             
-            // Multiple layers of foliage with more natural shapes
+            // Foliage creation function
             const createFoliage = (y, scale) => {
-                // Use icosahedron for more natural looking foliage
                 const foliageGeometry = new THREE.IcosahedronGeometry(1.5 * scale, 1);
-                // Vary the green colors slightly for each tree
                 const baseColor = new THREE.Color(0x2D4F2D).lerp(
                     new THREE.Color(0x4F7942), 
                     0.3 + Math.random() * 0.4
                 );
                 
-                const foliageMaterial = new THREE.MeshPhongMaterial({ 
-                    color: baseColor,
-                    shininess: 3,
-                    flatShading: true
-                });
+                const foliage = new THREE.Mesh(
+                    foliageGeometry,
+                    new THREE.MeshPhongMaterial({ 
+                        color: baseColor,
+                        shininess: 3,
+                        flatShading: true
+                    })
+                );
                 
-                const foliage = new THREE.Mesh(foliageGeometry, foliageMaterial);
-                foliage.position.y = y;
-                // Add some random offset for natural look
+                foliage.position.y = y + 2;
                 foliage.position.x = (Math.random() - 0.5) * 0.7;
                 foliage.position.z = (Math.random() - 0.5) * 0.7;
-                // Add random scaling for more variety
-                foliage.scale.x = 0.9 + Math.random() * 0.2;
-                foliage.scale.z = 0.9 + Math.random() * 0.2;
+                foliage.scale.x = foliage.scale.z = 0.9 + Math.random() * 0.2;
+                foliage.userData.initialY = foliage.position.y;
+                foliage.userData.swayOffset = Math.random() * Math.PI * 2;
                 return foliage;
             };
             
-            // Add multiple layers of foliage with more variation
-            treeGroup.add(createFoliage(3.5, 1.0));
-            treeGroup.add(createFoliage(4.5, 0.85));
-            treeGroup.add(createFoliage(5.3, 0.7));
-            treeGroup.add(createFoliage(6.0, 0.5));
-            
-            // Adjust foliage positions to slightly overlap with the trunk for a more realistic look
-            treeGroup.children.forEach(child => {
-                if (child instanceof THREE.Mesh && child.geometry.type === 'IcosahedronGeometry') {
-                    child.position.y -= 0.5; // Slightly lower foliage to overlap with the trunk
-                }
+            // Add foliage layers
+            [3.5, 4.5, 5.3, 6.0].forEach((height, i) => {
+                treeGroup.add(createFoliage(height, 1 - (i * 0.15)));
             });
             
             treeGroup.add(trunk);
             treeGroup.add(collisionMesh);
             
-            // Random position with restricted distribution
-            const position = new THREE.Vector3(
-                (Math.random() - 0.5) * 40,  // Reduced from 80 to 40
-                1.5,
-                (Math.random() - 0.5) * 40   // Reduced from 80 to 40
-            );
-            
-            // Check if position is too close to other objects
-            let validPosition = false;
-            let attempts = 0;
-            while (!validPosition && attempts < 10) {
-                validPosition = true;
-                // Don't place trees near the building
-                if (position.length() < 20) {
-                    validPosition = false;
-                    position.set(
-                        (Math.random() - 0.5) * 80,
-                        1.5,
-                        (Math.random() - 0.5) * 80
-                    );
-                    continue;
-                }
-                
-                for (const obj of game.collidableObjects) {
-                    const distance = position.distanceTo(obj.position);
-                    if (distance < minTreeDistance) {  // Use minTreeDistance for checking
-                        validPosition = false;
-                        position.set(
-                            (Math.random() - 0.5) * 80,
-                            1.5,
-                            (Math.random() - 0.5) * 80
-                        );
-                        break;
+            // Add animation
+            treeGroup.userData.update = (deltaTime) => {
+                const time = Date.now() * 0.001;
+                treeGroup.children.forEach(child => {
+                    if (child instanceof THREE.Mesh && child.geometry.type === 'IcosahedronGeometry') {
+                        child.rotation.x = Math.sin(time + child.userData.swayOffset) * 0.05;
+                        child.rotation.z = Math.cos(time + child.userData.swayOffset) * 0.05;
+                        child.position.y = child.userData.initialY + Math.sin(time + child.userData.swayOffset) * 0.05;
                     }
-                }
-                attempts++;
+                });
+            };
+            
+            if (game.updateableObjects) {
+                game.updateableObjects.push(treeGroup);
             }
             
-            treeGroup.position.copy(position);
+            return { treeGroup, collisionMesh };
+        };
+        
+        // Fixed positions for trees in a circular pattern around the center
+        const treePositions = [
+            { x: 30, z: 30 },
+            { x: 30, z: -30 },
+            { x: -30, z: 30 },
+            { x: -30, z: -30 },
+            { x: 45, z: 0 },
+            { x: -45, z: 0 },
+            { x: 0, z: 45 },
+            { x: 0, z: -45 }
+        ];
+        
+        // Create trees at fixed positions
+        treePositions.forEach(pos => {
+            const { treeGroup, collisionMesh } = createTree(game);
+            
+            // Set fixed position
+            treeGroup.position.set(pos.x, 1.5, pos.z);
             
             // Add random rotation and slight tilt for variety
             treeGroup.rotation.y = Math.random() * Math.PI * 2;
@@ -125,7 +113,7 @@ class Decorations {
             
             game.collidableObjects.push(collisionMesh);
             game.scene.add(treeGroup);
-        }
+        });
         
         // Add fountain after trees are placed
         this.addFountain(game);
@@ -133,145 +121,201 @@ class Decorations {
 
     static addFountain(game) {
         const fountain = new THREE.Group();
-
-        // Base pool
-        const poolGeometry = new THREE.CylinderGeometry(4, 4, 0.5, 32);
+    
+        // Larger base pool with decorative rim
+        const poolGeometry = new THREE.CylinderGeometry(12, 13, 1.5, 32);
         const stoneMaterial = new THREE.MeshPhongMaterial({
             color: 0x808080,
-            shininess: 30,
-            roughness: 0.8
+            shininess: 50,
+            roughness: 0.6
         });
         const pool = new THREE.Mesh(poolGeometry, stoneMaterial);
-        pool.position.y = 0.25;
+        pool.position.y = 0.75;
         fountain.add(pool);
+    
+        // Central structure
+        const baseGeometry = new THREE.CylinderGeometry(4, 5, 3, 8);
+        const base = new THREE.Mesh(baseGeometry, stoneMaterial);
+        base.position.y = 2.5;
+        fountain.add(base);
 
-        // Central pillar
-        const pillarGeometry = new THREE.CylinderGeometry(0.8, 1, 2, 16);
-        const pillar = new THREE.Mesh(pillarGeometry, stoneMaterial);
-        pillar.position.y = 1.5;
-        fountain.add(pillar);
+        // Define basins configuration
+        const basins = [
+            { radius: 8, height: 0.8, y: 4, spoutRadius: 3 },
+            { radius: 6, height: 0.8, y: 6, spoutRadius: 2 },
+            { radius: 4, height: 0.8, y: 8, spoutRadius: 1 }
+        ];
 
-        // Upper basin
-        const basinGeometry = new THREE.CylinderGeometry(2, 1.5, 0.4, 32);
-        const basin = new THREE.Mesh(basinGeometry, stoneMaterial);
-        basin.position.y = 2.5;
-        fountain.add(basin);
+        // Create basin structures
+        basins.forEach((basinData, index) => {
+            const basinGeometry = new THREE.CylinderGeometry(
+                basinData.radius, basinData.radius + 0.5, basinData.height, 32
+            );
+            const basin = new THREE.Mesh(basinGeometry, stoneMaterial);
+            basin.position.y = basinData.y;
+            fountain.add(basin);
+        });
 
-        // Water spout
-        const spoutGeometry = new THREE.CylinderGeometry(0.2, 0.3, 0.5, 16);
-        const spout = new THREE.Mesh(spoutGeometry, stoneMaterial);
-        spout.position.y = 2.8;
-        fountain.add(spout);
-
-        // Animated water particles
-        const createWaterParticles = () => {
-            const particles = new THREE.Group();
-            const waterMaterial = new THREE.MeshPhongMaterial({
-                color: 0x3498db,
-                transparent: true,
-                opacity: 0.6,
-                shininess: 90
-            });
-
-            for (let i = 0; i < 40; i++) {
-                const dropGeometry = new THREE.SphereGeometry(0.1, 8, 8);
-                const drop = new THREE.Mesh(dropGeometry, waterMaterial);
-                
-                // Random starting position within the spout
-                const angle = Math.random() * Math.PI * 2;
-                const radius = Math.random() * 0.1;
-                drop.position.set(
-                    Math.cos(angle) * radius,
-                    2.8,
-                    Math.sin(angle) * radius
+        // Create a custom water material with better visibility
+        const waterMaterial = new THREE.MeshPhysicalMaterial({
+            color: 0x3498db,
+            metalness: 0.9,
+            roughness: 0.1,
+            transparent: true,
+            opacity: 0.8,
+            envMapIntensity: 1.5,
+            clearcoat: 1.0,
+            clearcoatRoughness: 0.1
+        });
+    
+        // Add water to main pool using a plane
+        const poolWater = new THREE.Mesh(
+            new THREE.CircleGeometry(11.5, 32),
+            waterMaterial.clone()
+        );
+        poolWater.rotation.x = -Math.PI / 2;
+        poolWater.position.y = 0.8;
+        fountain.add(poolWater);
+    
+        // Add water to each basin
+        basins.forEach((basinData, index) => {
+            // Basin structure remains the same...
+    
+            // Add water surface to basin
+            const basinWater = new THREE.Mesh(
+                new THREE.CircleGeometry(basinData.radius - 0.2, 32),
+                waterMaterial.clone()
+            );
+            basinWater.rotation.x = -Math.PI / 2;
+            basinWater.position.y = basinData.y + 0.4;
+            fountain.add(basinWater);
+    
+            // Create falling water sheets instead of streams
+            const spoutCount = 8;
+            for (let i = 0; i < spoutCount; i++) {
+                const angle = (i / spoutCount) * Math.PI * 2;
+                const x = Math.cos(angle) * basinData.spoutRadius;
+                const z = Math.sin(angle) * basinData.spoutRadius;
+    
+                // Create water sheet
+                const height = basinData.y - (basins[index + 1]?.y || 1);
+                const waterSheet = new THREE.Mesh(
+                    new THREE.PlaneGeometry(0.8, height),
+                    new THREE.MeshPhysicalMaterial({
+                        color: 0x3498db,
+                        metalness: 0.2,
+                        roughness: 0.3,
+                        transparent: true,
+                        opacity: 0.6,
+                        side: THREE.DoubleSide
+                    })
                 );
-                
-                // Store animation parameters
-                drop.userData.velocity = new THREE.Vector3(
-                    (Math.random() - 0.5) * 0.2,
-                    Math.random() * 0.3 + 0.2,
-                    (Math.random() - 0.5) * 0.2
-                );
-                drop.userData.lifetime = 0;
-                drop.userData.maxLifetime = 1 + Math.random();
-                
-                particles.add(drop);
+                waterSheet.position.set(x, basinData.y - height/2, z);
+                waterSheet.lookAt(new THREE.Vector3(0, waterSheet.position.y, 0));
+                fountain.add(waterSheet);
             }
-            return particles;
-        };
-
-        // Modify the water animation system
-        const waterParticles = createWaterParticles();
-        fountain.add(waterParticles);
-
-        // Instead of using requestAnimationFrame, create an update method
+        });
+    
+        // Central water jet
+        const centralJet = new THREE.Mesh(
+            new THREE.PlaneGeometry(1, 4),
+            new THREE.MeshPhysicalMaterial({
+                color: 0x3498db,
+                metalness: 0.2,
+                roughness: 0.3,
+                transparent: true,
+                opacity: 0.7,
+                side: THREE.DoubleSide
+            })
+        );
+        centralJet.position.y = 10;
+        fountain.add(centralJet);
+    
+        // Simpler animation that focuses on water surfaces
         fountain.userData.update = (deltaTime) => {
-            waterParticles.children.forEach(drop => {
-                drop.userData.lifetime += deltaTime;
-
-                if (drop.userData.lifetime >= drop.userData.maxLifetime) {
-                    // Reset particle
-                    const angle = Math.random() * Math.PI * 2;
-                    const radius = Math.random() * 0.1;
-                    drop.position.set(
-                        Math.cos(angle) * radius,
-                        2.8,
-                        Math.sin(angle) * radius
-                    );
-                    drop.userData.lifetime = 0;
-                    drop.userData.velocity.set(
-                        (Math.random() - 0.5) * 0.2,
-                        Math.random() * 0.3 + 0.2,
-                        (Math.random() - 0.5) * 0.2
-                    );
-                } else {
-                    // Update position
-                    drop.position.add(drop.userData.velocity.clone().multiplyScalar(deltaTime * 60));
-                    drop.userData.velocity.y -= 0.015 * deltaTime * 60; // Gravity
+            const time = Date.now() * 0.001;
+            fountain.children.forEach(child => {
+                if (child.material && child.material.transparent) {
+                    // Animate water surfaces
+                    if (child.geometry.type === 'CircleGeometry') {
+                        child.position.y += Math.sin(time * 2) * 0.0005;
+                        child.material.opacity = 0.8 + Math.sin(time * 1.5) * 0.1;
+                    }
+                    // Animate water sheets
+                    else if (child.geometry.type === 'PlaneGeometry') {
+                        child.rotation.y = Math.sin(time + child.position.x) * 0.1;
+                        child.material.opacity = 0.6 + Math.sin(time * 2 + child.position.z) * 0.2;
+                    }
                 }
             });
         };
-
-        // Remove the separate animation loop
-        // animateWater(); // Remove this line
-
-        // Collision detection
-        const fountainCollisionGeometry = new THREE.CylinderGeometry(4.2, 4.2, 3, 16);
-        const fountainCollisionMaterial = new THREE.MeshBasicMaterial({ visible: false });
-        const fountainCollision = new THREE.Mesh(fountainCollisionGeometry, fountainCollisionMaterial);
-        fountainCollision.position.y = 1.5;
+    
+        // Updated collision detection
+        const fountainCollisionGeometry = new THREE.CylinderGeometry(13, 13, 12, 16);
+        const fountainCollision = new THREE.Mesh(
+            fountainCollisionGeometry,
+            new THREE.MeshBasicMaterial({ visible: false })
+        );
+        fountainCollision.position.y = 6;
         fountain.add(fountainCollision);
-
-        // Find valid position for fountain
+    
+        // Position finding logic for fountain
         let validPosition = false;
+        let attempts = 0;
         const position = new THREE.Vector3();
-        while (!validPosition) {
+        const minFountainDistance = 20; // Larger distance for fountain
+    
+        while (!validPosition && attempts < 30) {
             position.set(
                 (Math.random() - 0.5) * 60,
                 0,
                 (Math.random() - 0.5) * 60
             );
-
+    
             validPosition = true;
             
-            // Check distance from building center
+            // Don't place fountain near the building (center)
             if (position.length() < 25) {
                 validPosition = false;
+                attempts++;
                 continue;
             }
-
-            // Check distance from other objects
+    
+            // Check distance to all collidable objects
             for (const obj of game.collidableObjects) {
                 const distance = position.distanceTo(obj.position);
-                if (distance < 15) {
+                if (distance < minFountainDistance) {
                     validPosition = false;
                     break;
                 }
             }
+            attempts++;
         }
-
+    
+        // If we couldn't find a valid position, place it at a predetermined location
+        if (!validPosition) {
+            position.set(40, 0, 40);
+            
+            // Final check to ensure it doesn't overlap with anything
+            let isClear = true;
+            for (const obj of game.collidableObjects) {
+                if (position.distanceTo(obj.position) < minFountainDistance) {
+                    isClear = false;
+                    break;
+                }
+            }
+            
+            // If still not clear, try the opposite corner
+            if (!isClear) {
+                position.set(-40, 0, -40);
+            }
+        }
+    
         fountain.position.copy(position);
-
+    
+        // Fixed position for fountain
+        fountain.position.set(60, 0, 60);
+    
         // Add shadows
         fountain.traverse((object) => {
             if (object instanceof THREE.Mesh) {
@@ -279,14 +323,10 @@ class Decorations {
                 object.receiveShadow = true;
             }
         });
-
-        // Add to collidable objects
+    
         game.collidableObjects.push(fountainCollision);
-        
-        // Add fountain to scene
         game.scene.add(fountain);
         
-        // Add fountain to game's updateable objects if the system exists
         if (game.updateableObjects) {
             game.updateableObjects.push(fountain);
         }

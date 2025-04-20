@@ -122,6 +122,16 @@ class Player {
             arm.add(sleeve);
             
             arm.position.set(isLeft ? -0.45 : 0.45, 1.4, 0);
+            
+            // Set right arm to point forward (in front of face)
+            if (!isLeft) {
+                arm.rotation.x = 0;           // No downward tilt
+                arm.rotation.y = 0;           // No sideways twist
+                arm.rotation.z = 0;           // No outward angle
+                // Now rotate to point forward along Z axis
+                arm.rotation.y = Math.PI / 2; // Rotate 90 degrees around Y to point forward
+            }
+            
             return arm;
         };
         
@@ -220,10 +230,12 @@ class Player {
         );
         
         arms.forEach((arm, index) => {
-            // Opposite phase to legs for natural walking motion
-            arm.rotation.x = -Math.sin(time * frequency + index * Math.PI) * amplitude;
-            // Reduced side swing
-            arm.rotation.z = Math.cos(time * frequency + index * Math.PI) * (amplitude * 0.2);
+            // Only animate the left arm (index 0 is left, 1 is right)
+            if (arm.position.x === -0.45) {
+                arm.rotation.x = -Math.sin(time * frequency + index * Math.PI) * amplitude;
+                arm.rotation.z = Math.cos(time * frequency + index * Math.PI) * (amplitude * 0.2);
+            }
+            // Do not animate the right arm (keep pledge position)
         });
 
         // Add slight body movement
@@ -247,8 +259,12 @@ class Player {
         );
         
         limbs.forEach(limb => {
-            limb.rotation.x = 0;
-            limb.rotation.z = 0;
+            // Only reset left arm and both legs
+            if (!(limb.position.y === 1.4 && limb.position.x === 0.45)) {
+                limb.rotation.x = 0;
+                limb.rotation.z = 0;
+            }
+            // Do not reset right arm (keep pledge position)
         });
         
         // Reset torso rotation
