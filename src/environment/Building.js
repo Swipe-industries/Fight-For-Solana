@@ -134,57 +134,160 @@ class Building {
     }
     
     static createTunnel(building, materials, game) {
-        // Create a tunnel through the center of the platform
+        // Create a tunnel at ground level instead of through the platform
         const tunnelWidth = 10;
         const tunnelHeight = 8;
         
-        // Tunnel cutout
-        const tunnelGeometry = new THREE.BoxGeometry(tunnelWidth, tunnelHeight, 32);
-        const tunnelMaterial = new THREE.MeshBasicMaterial({ 
-            color: 0x000000,
-            transparent: true,
-            opacity: 0.5
-        });
+        // We'll create the tunnel using walls instead of a cutout mesh
+        // This ensures proper collision detection
         
-        const tunnel = new THREE.Mesh(tunnelGeometry, tunnelMaterial);
-        tunnel.position.set(0, 8, 0);
-        building.add(tunnel);
+        // Tunnel floor
+        const tunnelFloor = new THREE.Mesh(
+            new THREE.BoxGeometry(tunnelWidth, 0.5, 32),
+            materials.platform
+        );
+        tunnelFloor.position.set(0, 0.25, 0);
+        tunnelFloor.userData = { isCollider: true };
+        building.add(tunnelFloor);
+        game.collidableObjects.push(tunnelFloor);
         
-        // Add accent lighting to tunnel entrance
-        const entrances = [
-            { pos: [0, 8, 15], rot: [0, 0, 0] },
-            { pos: [0, 8, -15], rot: [0, Math.PI, 0] }
+        // Tunnel ceiling
+        const tunnelCeiling = new THREE.Mesh(
+            new THREE.BoxGeometry(tunnelWidth, 0.5, 32),
+            materials.platform
+        );
+        tunnelCeiling.position.set(0, tunnelHeight, 0);
+        tunnelCeiling.userData = { isCollider: true };
+        building.add(tunnelCeiling);
+        game.collidableObjects.push(tunnelCeiling);
+        
+        // Tunnel left wall
+        const leftWall = new THREE.Mesh(
+            new THREE.BoxGeometry(0.5, tunnelHeight, 32),
+            materials.platform
+        );
+        leftWall.position.set(-tunnelWidth/2, tunnelHeight/2, 0);
+        leftWall.userData = { isCollider: true };
+        building.add(leftWall);
+        game.collidableObjects.push(leftWall);
+        
+        // Tunnel right wall
+        const rightWall = new THREE.Mesh(
+            new THREE.BoxGeometry(0.5, tunnelHeight, 32),
+            materials.platform
+        );
+        rightWall.position.set(tunnelWidth/2, tunnelHeight/2, 0);
+        rightWall.userData = { isCollider: true };
+        building.add(rightWall);
+        game.collidableObjects.push(rightWall);
+        
+        // Add some lighting inside the tunnel
+        const tunnelLights = [
+            { pos: [0, tunnelHeight - 0.6, -10] },
+            { pos: [0, tunnelHeight - 0.6, 0] },
+            { pos: [0, tunnelHeight - 0.6, 10] }
         ];
         
-        entrances.forEach(entrance => {
-            // Create frame around tunnel entrance
-            const frame = new THREE.Mesh(
-                new THREE.BoxGeometry(tunnelWidth + 2, tunnelHeight + 2, 1),
-                materials.accent
+        tunnelLights.forEach(light => {
+            const lightFixture = new THREE.Mesh(
+                new THREE.BoxGeometry(2, 0.2, 2),
+                new THREE.MeshPhongMaterial({
+                    color: 0xffffff,
+                    emissive: 0xffffff,
+                    emissiveIntensity: 0.5
+                })
             );
-            frame.position.set(...entrance.pos);
-            frame.rotation.set(...entrance.rot);
-            building.add(frame);
-            
-            // Create inner cutout
-            const cutout = new THREE.Mesh(
-                new THREE.BoxGeometry(tunnelWidth, tunnelHeight, 2),
-                tunnelMaterial
-            );
-            cutout.position.set(...entrance.pos);
-            cutout.rotation.set(...entrance.rot);
-            building.add(cutout);
+            lightFixture.position.set(...light.pos);
+            building.add(lightFixture);
         });
     }
     
     static createAccessPoints(building, materials, game) {
-        // Create simple ramps to access the platform
-        
-        // Front ramp
-        this.createRamp(building, materials, 0, 0, 20, 0, 8, 10, game);
-        
         // Create simple stairs to access the roof
         this.createStairs(building, materials, 15, 8, 0, 15, 7, game);
+        
+        // No ramp anymore
+    }
+    
+    static createTunnel(building, materials, game) {
+        // Create a tunnel at ground level with improved walkability
+        const tunnelWidth = 12; // Wider tunnel
+        const tunnelHeight = 8;
+        
+        // Tunnel floor - visual only, no collision
+        const tunnelFloor = new THREE.Mesh(
+            new THREE.BoxGeometry(tunnelWidth + 2, 0.5, 36),
+            materials.platform
+        );
+        tunnelFloor.position.set(0, 0.25, 0);
+        // No collision detection for the floor
+        building.add(tunnelFloor);
+        
+        // Tunnel ceiling
+        const tunnelCeiling = new THREE.Mesh(
+            new THREE.BoxGeometry(tunnelWidth, 0.5, 32),
+            materials.platform
+        );
+        tunnelCeiling.position.set(0, tunnelHeight, 0);
+        tunnelCeiling.userData = { isCollider: true };
+        building.add(tunnelCeiling);
+        game.collidableObjects.push(tunnelCeiling);
+        
+        // Tunnel left wall
+        const leftWall = new THREE.Mesh(
+            new THREE.BoxGeometry(0.5, tunnelHeight, 32),
+            materials.platform
+        );
+        leftWall.position.set(-tunnelWidth/2, tunnelHeight/2, 0);
+        leftWall.userData = { isCollider: true };
+        building.add(leftWall);
+        game.collidableObjects.push(leftWall);
+        
+        // Tunnel right wall
+        const rightWall = new THREE.Mesh(
+            new THREE.BoxGeometry(0.5, tunnelHeight, 32),
+            materials.platform
+        );
+        rightWall.position.set(tunnelWidth/2, tunnelHeight/2, 0);
+        rightWall.userData = { isCollider: true };
+        building.add(rightWall);
+        game.collidableObjects.push(rightWall);
+        
+        // Add some lighting inside the tunnel
+        const tunnelLights = [
+            { pos: [0, tunnelHeight - 0.6, -10] },
+            { pos: [0, tunnelHeight - 0.6, 0] },
+            { pos: [0, tunnelHeight - 0.6, 10] }
+        ];
+        
+        tunnelLights.forEach(light => {
+            const lightFixture = new THREE.Mesh(
+                new THREE.BoxGeometry(2, 0.2, 2),
+                new THREE.MeshPhongMaterial({
+                    color: 0xffffff,
+                    emissive: 0xffffff,
+                    emissiveIntensity: 0.5
+                })
+            );
+            lightFixture.position.set(...light.pos);
+            building.add(lightFixture);
+        });
+        
+        // Add guide markers on the floor for better navigation (visual only)
+        const markerCount = 8;
+        const markerSpacing = 30 / markerCount;
+        
+        for (let i = 0; i < markerCount; i++) {
+            const marker = new THREE.Mesh(
+                new THREE.BoxGeometry(4, 0.1, 0.5),
+                new THREE.MeshPhongMaterial({
+                    color: 0xffffff,
+                    emissive: 0x888888
+                })
+            );
+            marker.position.set(0, 0.51, -15 + i * markerSpacing);
+            building.add(marker);
+        }
     }
     
     static createRamp(building, materials, x, y, z, startY, endY, length, game) {
