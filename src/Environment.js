@@ -11,7 +11,8 @@ import { Decorations } from './environment/Decorations.js';
 import { Characters } from './environment/Characters.js';
 import { Vehicles } from './environment/Vehicles.js';
 import { Props } from './environment/Props.js';
-import { Skyline } from './environment/Skyline.js'; // Add this import
+import { Skyline } from './environment/Skyline.js';
+import { Tunnel } from './environment/Tunnel.js'; // Add this import
 
 class Environment {
     static setupLights(game) {
@@ -42,6 +43,9 @@ class Environment {
 
         // Add a container near the boundary
         Environment.createContainer(game, 45, 0, 45, Math.PI / 4);
+        
+        // Create tunnel
+        Environment.createTunnel(game);
     }
 
     static createGround(game) {
@@ -82,6 +86,10 @@ class Environment {
 
     static createSkyline(game) {
         Skyline.create(game);
+    }
+    
+    static createTunnel(game) {
+        Tunnel.create(game);
     }
 }
 
