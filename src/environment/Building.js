@@ -4,426 +4,358 @@ class Building {
     static create(game) {
         const building = new THREE.Group();
         
-        // Create base material with brick-like texture
-        const wallsMaterial = new THREE.MeshPhongMaterial({
-            color: 0xe8d1c5, // Beige-pink brick color
-            roughness: 0.8,
-            metalness: 0.2
-        });
-
-        // Create tower section (taller building)
-        const towerHeight = 40;
-        const numFloors = 10;
-        const floorHeight = 4;
+        // Create materials
+        const materials = {
+            platform: new THREE.MeshPhongMaterial({
+                color: 0x444444,
+                roughness: 0.7
+            }),
+            pillar: new THREE.MeshPhongMaterial({
+                color: 0x222222,
+                metalness: 0.8
+            }),
+            glass: new THREE.MeshPhongMaterial({
+                color: 0x88ccff,
+                transparent: true,
+                opacity: 0.4,
+                shininess: 90
+            }),
+            accent: new THREE.MeshPhongMaterial({
+                color: 0xff3333
+            })
+        };
         
-        const tower = new THREE.Mesh(
-            new THREE.BoxGeometry(15, towerHeight, 15),
-            wallsMaterial
-        );
-        tower.position.set(-10, towerHeight/2, 0);
-        building.add(tower);
-
-        // Create shorter section
-        const shorterBuilding = new THREE.Mesh(
-            new THREE.BoxGeometry(20, 16, 15),
-            wallsMaterial
-        );
-        shorterBuilding.position.set(10, 8, 0);
-        building.add(shorterBuilding);
-
-        // Add architectural details
-        this.addArchitecturalDetails(building);
+        // Create floating platform structure
+        this.createPlatformStructure(building, materials, game);
         
-        // Add windows with more realistic pattern
-        this.addDetailedWindows(building);
+        // Create tunnel through the center
+        this.createTunnel(building, materials, game);
         
-        // Add fire escape
-        this.addFireEscape(building);
-
-        // Create hollow interior by removing inner part
-        Building.createInteriors(building);
+        // Add access points
+        this.createAccessPoints(building, materials, game);
         
-        // Create entrance - wider doorway
-        Building.createEntrance(building);
-        
-        // Add windows
-        Building.addWindows(building);
-        
-        // Add interior staircase between floors
-        Building.addInteriorStairs(building);
-        
-        // Add some interior furniture
-        Building.addFurniture(building);
-        
-        // Add collision detection - only for exterior walls and floors
-        building.traverse((object) => {
-            if (object instanceof THREE.Mesh) {
-                object.castShadow = true;
-                object.receiveShadow = true;
-                
-                if (object.name === "structure") {
-                    game.collidableObjects.push(object);
-                }
-            }
-        });
-
         building.position.set(0, 0, 0);
         game.scene.add(building);
     }
-
-    static addArchitecturalDetails(building) {
-        const detailsMaterial = new THREE.MeshPhongMaterial({
-            color: 0xd3c0b5,
-            shininess: 5
-        });
-
-        // Add cornices between floors
-        for (let i = 1; i <= 10; i++) {
-            const cornice = new THREE.Mesh(
-                new THREE.BoxGeometry(15.5, 0.3, 15.5),
-                detailsMaterial
-            );
-            cornice.position.set(-10, i * 4 - 0.15, 0);
-            building.add(cornice);
-        }
-
-        // Add ground floor detail
-        const baseDetail = new THREE.Mesh(
-            new THREE.BoxGeometry(36, 1, 16),
-            detailsMaterial
+    
+    static createPlatformStructure(building, materials, game) {
+        // Main platform
+        const platform = new THREE.Mesh(
+            new THREE.BoxGeometry(40, 2, 30),
+            materials.platform
         );
-        baseDetail.position.set(0, 0.5, 0);
-        building.add(baseDetail);
-    }
-
-    static addDetailedWindows(building) {
-        const windowMaterial = new THREE.MeshPhongMaterial({
-            color: 0x87CEEB,
-            shininess: 90,
-            opacity: 0.7,
-            transparent: true
-        });
-
-        // Tower windows
-        for (let floor = 0; floor < 10; floor++) {
-            for (let column = 0; column < 3; column++) {
-                for (let side = 0; side < 4; side++) {
-                    const window = new THREE.Mesh(
-                        new THREE.BoxGeometry(1.2, 2, 0.1),
-                        windowMaterial
-                    );
-                    
-                    const angle = (side * Math.PI) / 2;
-                    const radius = 7;
-                    const x = -10 + Math.sin(angle) * radius;
-                    const z = Math.cos(angle) * radius;
-                    
-                    window.position.set(
-                        x + (column - 1) * 2,
-                        floor * 4 + 2,
-                        z
-                    );
-                    window.rotation.y = angle;
-                    building.add(window);
-                }
-            }
-        }
-
-        // Shorter building windows
-        const shorterBuildingWindows = [
-            // Front row
-            [8, 2, 7.5], [10, 2, 7.5], [12, 2, 7.5],
-            [8, 6, 7.5], [10, 6, 7.5], [12, 6, 7.5],
-            [8, 10, 7.5], [10, 10, 7.5], [12, 10, 7.5],
-        ];
-
-        shorterBuildingWindows.forEach(pos => {
-            const window = new THREE.Mesh(
-                new THREE.BoxGeometry(1.2, 2, 0.1),
-                windowMaterial
-            );
-            window.position.set(...pos);
-            building.add(window);
-        });
-    }
-
-    static addFireEscape(building) {
-        const fireEscapeMaterial = new THREE.MeshPhongMaterial({
-            color: 0x333333,
-            metalness: 0.8,
-            roughness: 0.2
-        });
-
-        const fireEscape = new THREE.Group();
-
-        // Create platforms and ladders
-        for (let floor = 1; floor < 10; floor++) {
-            // Platform
-            const platform = new THREE.Mesh(
-                new THREE.BoxGeometry(3, 0.2, 4),
-                fireEscapeMaterial
-            );
-            platform.position.set(-17, floor * 4, 0);
-            
-            // Railings
-            const railing1 = new THREE.Mesh(
-                new THREE.BoxGeometry(3, 1, 0.1),
-                fireEscapeMaterial
-            );
-            railing1.position.set(-17, floor * 4 + 0.5, 2);
-            
-            // Ladder
-            const ladder = new THREE.Mesh(
-                new THREE.BoxGeometry(0.2, 4, 0.2),
-                fireEscapeMaterial
-            );
-            ladder.position.set(-17, floor * 4 - 2, 2);
-            
-            fireEscape.add(platform, railing1, ladder);
-        }
-
-        building.add(fireEscape);
-    }
-
-    static createInteriors(building) {
-        const hollowInterior = (floor, y) => {
-            const interiorGeometry = new THREE.BoxGeometry(18, 3.5, 13);
-            const interiorMaterial = new THREE.MeshPhongMaterial({
-                color: 0xeeeeee,
-                side: THREE.BackSide
-            });
-            const interior = new THREE.Mesh(interiorGeometry, interiorMaterial);
-            interior.position.y = y;
-            building.add(interior);
-            
-            // Add floor
-            const floorGeometry = new THREE.BoxGeometry(18, 0.5, 13);
-            const floorMaterial = new THREE.MeshPhongMaterial({
-                color: floor === 1 ? 0x8a5a44 : 0x9e8875, // Wood floor colors
-                shininess: 30
-            });
-            const floorMesh = new THREE.Mesh(floorGeometry, floorMaterial);
-            floorMesh.position.y = y - 1.75;
-            building.add(floorMesh);
-            
-            // Add ceiling
-            if (floor === 1) {
-                const ceilingGeometry = new THREE.BoxGeometry(18, 0.5, 13);
-                const ceilingMaterial = new THREE.MeshPhongMaterial({
-                    color: 0xdddddd,
-                    shininess: 10
-                });
-                const ceilingMesh = new THREE.Mesh(ceilingGeometry, ceilingMaterial);
-                ceilingMesh.position.y = y + 1.75;
-                building.add(ceilingMesh);
-            }
-        };
+        platform.position.set(0, 8, 0);
+        platform.userData = { isCollider: true };
+        building.add(platform);
+        game.collidableObjects.push(platform);
         
-        // Create interiors for both floors
-        hollowInterior(1, 2);
-        hollowInterior(2, 6);
+        // Support pillars
+        const pillarPositions = [
+            [-15, 0, 10],
+            [15, 0, 10],
+            [-15, 0, -10],
+            [15, 0, -10]
+        ];
+        
+        pillarPositions.forEach(pos => {
+            const pillar = new THREE.Mesh(
+                new THREE.CylinderGeometry(2, 2, 8, 8),
+                materials.pillar
+            );
+            pillar.position.set(pos[0], 4, pos[2]);
+            pillar.userData = { isCollider: true };
+            building.add(pillar);
+            game.collidableObjects.push(pillar);
+            
+            // Add base for each pillar
+            const base = new THREE.Mesh(
+                new THREE.CylinderGeometry(3, 3, 1, 8),
+                materials.platform
+            );
+            base.position.set(pos[0], 0.5, pos[2]);
+            base.userData = { isCollider: true };
+            building.add(base);
+            game.collidableObjects.push(base);
+        });
+        
+        // Upper structure - simple glass enclosure
+        const walls = [
+            // Front
+            { size: [38, 6, 0.5], pos: [0, 12, 14.5] },
+            // Back
+            { size: [38, 6, 0.5], pos: [0, 12, -14.5] },
+            // Left
+            { size: [0.5, 6, 29], pos: [-19.5, 12, 0] },
+            // Right
+            { size: [0.5, 6, 29], pos: [19.5, 12, 0] }
+        ];
+        
+        walls.forEach(wall => {
+            const glassWall = new THREE.Mesh(
+                new THREE.BoxGeometry(...wall.size),
+                materials.glass
+            );
+            glassWall.position.set(...wall.pos);
+            building.add(glassWall);
+        });
+        
+        // Roof
+        const roof = new THREE.Mesh(
+            new THREE.BoxGeometry(40, 0.5, 30),
+            materials.platform
+        );
+        roof.position.set(0, 15.25, 0);
+        roof.userData = { isCollider: true };
+        building.add(roof);
+        game.collidableObjects.push(roof);
+        
+        // Add simple railings around the roof
+        const railings = [
+            // Front
+            { size: [40, 1, 0.2], pos: [0, 16, 15] },
+            // Back
+            { size: [40, 1, 0.2], pos: [0, 16, -15] },
+            // Left
+            { size: [0.2, 1, 30], pos: [-20, 16, 0] },
+            // Right
+            { size: [0.2, 1, 30], pos: [20, 16, 0] }
+        ];
+        
+        railings.forEach(railing => {
+            const rail = new THREE.Mesh(
+                new THREE.BoxGeometry(...railing.size),
+                materials.pillar
+            );
+            rail.position.set(...railing.pos);
+            rail.userData = { isCollider: true };
+            building.add(rail);
+            game.collidableObjects.push(rail);
+        });
     }
-
-    static createEntrance(building) {
-        // Create entrance to the building
-        const doorWidth = 2.5;
-        const doorHeight = 3.5;
-        const doorGeometry = new THREE.BoxGeometry(doorWidth, doorHeight, 0.5);
-        const doorMaterial = new THREE.MeshPhongMaterial({
-            color: 0x222222,
+    
+    static createTunnel(building, materials, game) {
+        // Create a tunnel through the center of the platform
+        const tunnelWidth = 10;
+        const tunnelHeight = 8;
+        
+        // Tunnel cutout
+        const tunnelGeometry = new THREE.BoxGeometry(tunnelWidth, tunnelHeight, 32);
+        const tunnelMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0x000000,
             transparent: true,
-            opacity: 0.7,
-            emissive: 0x111111
-        });
-        const door = new THREE.Mesh(doorGeometry, doorMaterial);
-        door.position.set(0, doorHeight/2, 7.5); // Using actual building depth (15/2)
-        building.add(door);
-        
-        // Add entrance light
-        const entranceLight = new THREE.PointLight(0xffffaa, 0.8, 10);
-        entranceLight.position.set(0, doorHeight, 7.5);
-        building.add(entranceLight);
-        
-        // Add door frame
-        const doorFrameMaterial = new THREE.MeshPhongMaterial({
-            color: 0x5d4037,
-            shininess: 30
+            opacity: 0.5
         });
         
-        const doorFrame = new THREE.Group();
+        const tunnel = new THREE.Mesh(tunnelGeometry, tunnelMaterial);
+        tunnel.position.set(0, 8, 0);
+        building.add(tunnel);
         
-        // Top of frame
-        const topFrame = new THREE.Mesh(
-            new THREE.BoxGeometry(3.2, 0.3, 0.3),
-            doorFrameMaterial
-        );
-        topFrame.position.y = 3;
-        doorFrame.add(topFrame);
-        
-        // Sides of frame
-        const leftFrame = new THREE.Mesh(
-            new THREE.BoxGeometry(0.3, 3, 0.3),
-            doorFrameMaterial
-        );
-        leftFrame.position.x = -1.6;
-        leftFrame.position.y = 1.5;
-        doorFrame.add(leftFrame);
-        
-        const rightFrame = new THREE.Mesh(
-            new THREE.BoxGeometry(0.3, 3, 0.3),
-            doorFrameMaterial
-        );
-        rightFrame.position.x = 1.6;
-        rightFrame.position.y = 1.5;
-        doorFrame.add(rightFrame);
-        
-        doorFrame.position.z = 7.5;
-        building.add(doorFrame);
-        
-        // Add stairs to entrance
-        const stairsMaterial = new THREE.MeshPhongMaterial({
-            color: 0x9e9e9e,
-            shininess: 5
-        });
-        
-        const stairs = new THREE.Group();
-        
-        const stair1 = new THREE.Mesh(
-            new THREE.BoxGeometry(4, 0.5, 1),
-            stairsMaterial
-        );
-        stair1.position.z = 8.5;
-        stairs.add(stair1);
-        
-        const stair2 = new THREE.Mesh(
-            new THREE.BoxGeometry(4, 0.5, 1),
-            stairsMaterial
-        );
-        stair2.position.z = 9.5;
-        stair2.position.y = -0.5;
-        stairs.add(stair2);
-        
-        building.add(stairs);
-    }
-
-    static addWindows(building) {
-        const windowGeometry = new THREE.BoxGeometry(1.5, 1.5, 0.1);
-        const windowMaterial = new THREE.MeshPhongMaterial({
-            color: 0x87CEEB,
-            shininess: 90,
-            opacity: 0.7,
-            transparent: true
-        });
-        
-        // Ground floor windows
-        const groundWindowPositions = [
-            [-8, 2, 7.5], [-5, 2, 7.5], [5, 2, 7.5], [8, 2, 7.5],  // Front
-            [-8, 2, -7.5], [-5, 2, -7.5], [5, 2, -7.5], [8, 2, -7.5],  // Back
-            [10, 2, -5], [10, 2, 0], [10, 2, 5],  // Right
-            [-10, 2, -5], [-10, 2, 0], [-10, 2, 5]  // Left
+        // Add accent lighting to tunnel entrance
+        const entrances = [
+            { pos: [0, 8, 15], rot: [0, 0, 0] },
+            { pos: [0, 8, -15], rot: [0, Math.PI, 0] }
         ];
         
-        // Second floor windows
-        const secondWindowPositions = [
-            [-8, 6, 7.5], [-5, 6, 7.5], [5, 6, 7.5], [8, 6, 7.5],  // Front
-            [-8, 6, -7.5], [-5, 6, -7.5], [5, 6, -7.5], [8, 6, -7.5],  // Back
-            [10, 6, -5], [10, 6, 0], [10, 6, 5],  // Right
-            [-10, 6, -5], [-10, 6, 0], [-10, 6, 5]  // Left
-        ];
-        
-        // Add all windows
-        [...groundWindowPositions, ...secondWindowPositions].forEach(pos => {
-            const window = new THREE.Mesh(windowGeometry, windowMaterial);
-            window.position.set(...pos);
-            if (Math.abs(pos[0]) === 10) {
-                window.rotation.y = Math.PI / 2;
-            }
-            building.add(window);
-        });
-    }
-
-    static addInteriorStairs(building) {
-        const stairsMaterial = new THREE.MeshPhongMaterial({
-            color: 0x9e9e9e,
-            shininess: 5
-        });
-        
-        const interiorStairs = new THREE.Group();
-        
-        for (let i = 0; i < 8; i++) {
-            const step = new THREE.Mesh(
-                new THREE.BoxGeometry(3, 0.25, 1),
-                stairsMaterial
+        entrances.forEach(entrance => {
+            // Create frame around tunnel entrance
+            const frame = new THREE.Mesh(
+                new THREE.BoxGeometry(tunnelWidth + 2, tunnelHeight + 2, 1),
+                materials.accent
             );
-            step.position.set(-7, 2.5 + i * 0.5, 0 - i * 0.5);
-            interiorStairs.add(step);
+            frame.position.set(...entrance.pos);
+            frame.rotation.set(...entrance.rot);
+            building.add(frame);
+            
+            // Create inner cutout
+            const cutout = new THREE.Mesh(
+                new THREE.BoxGeometry(tunnelWidth, tunnelHeight, 2),
+                tunnelMaterial
+            );
+            cutout.position.set(...entrance.pos);
+            cutout.rotation.set(...entrance.rot);
+            building.add(cutout);
+        });
+    }
+    
+    static createAccessPoints(building, materials, game) {
+        // Create simple ramps to access the platform
+        
+        // Front ramp
+        this.createRamp(building, materials, 0, 0, 20, 0, 8, 10, game);
+        
+        // Create simple stairs to access the roof
+        this.createStairs(building, materials, 15, 8, 0, 15, 7, game);
+    }
+    
+    static createRamp(building, materials, x, y, z, startY, endY, length, game) {
+        const rampWidth = 8;
+        const rampThickness = 0.5;
+        
+        // Create ramp geometry
+        const rampGeometry = new THREE.BufferGeometry();
+        
+        // Define vertices for the ramp
+        const vertices = new Float32Array([
+            // Top face
+            -rampWidth/2, startY, 0,
+            rampWidth/2, startY, 0,
+            -rampWidth/2, endY, -length,
+            
+            rampWidth/2, startY, 0,
+            rampWidth/2, endY, -length,
+            -rampWidth/2, endY, -length,
+            
+            // Bottom face
+            -rampWidth/2, startY - rampThickness, 0,
+            -rampWidth/2, endY - rampThickness, -length,
+            rampWidth/2, startY - rampThickness, 0,
+            
+            -rampWidth/2, endY - rampThickness, -length,
+            rampWidth/2, endY - rampThickness, -length,
+            rampWidth/2, startY - rampThickness, 0,
+            
+            // Left side
+            -rampWidth/2, startY, 0,
+            -rampWidth/2, endY, -length,
+            -rampWidth/2, startY - rampThickness, 0,
+            
+            -rampWidth/2, endY, -length,
+            -rampWidth/2, endY - rampThickness, -length,
+            -rampWidth/2, startY - rampThickness, 0,
+            
+            // Right side
+            rampWidth/2, startY, 0,
+            rampWidth/2, startY - rampThickness, 0,
+            rampWidth/2, endY, -length,
+            
+            rampWidth/2, startY - rampThickness, 0,
+            rampWidth/2, endY - rampThickness, -length,
+            rampWidth/2, endY, -length,
+        ]);
+        
+        rampGeometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+        rampGeometry.computeVertexNormals();
+        
+        // Create the ramp mesh
+        const ramp = new THREE.Mesh(rampGeometry, materials.platform);
+        ramp.position.set(x, y, z);
+        ramp.userData = { isCollider: true };
+        building.add(ramp);
+        game.collidableObjects.push(ramp);
+        
+        // Add simple railings
+        const railHeight = 1.2;
+        const railThickness = 0.2;
+        
+        // Left railing
+        const leftRail = new THREE.Mesh(
+            new THREE.BoxGeometry(railThickness, railHeight, Math.sqrt(length*length + (endY-startY)*(endY-startY))),
+            materials.pillar
+        );
+        leftRail.position.set(x - rampWidth/2, y + startY + railHeight/2, z - length/2);
+        leftRail.rotation.x = Math.atan2(endY - startY, length);
+        leftRail.userData = { isCollider: true };
+        building.add(leftRail);
+        game.collidableObjects.push(leftRail);
+        
+        // Right railing
+        const rightRail = new THREE.Mesh(
+            new THREE.BoxGeometry(railThickness, railHeight, Math.sqrt(length*length + (endY-startY)*(endY-startY))),
+            materials.pillar
+        );
+        rightRail.position.set(x + rampWidth/2, y + startY + railHeight/2, z - length/2);
+        rightRail.rotation.x = Math.atan2(endY - startY, length);
+        rightRail.userData = { isCollider: true };
+        building.add(rightRail);
+        game.collidableObjects.push(rightRail);
+    }
+    
+    static createStairs(building, materials, x, y, z, height, steps, game) {
+        const stairWidth = 4;
+        const stepDepth = 1;
+        const stepHeight = height / steps;
+        
+        for (let i = 0; i < steps; i++) {
+            const step = new THREE.Mesh(
+                new THREE.BoxGeometry(stairWidth, stepHeight, stepDepth),
+                materials.platform
+            );
+            
+            step.position.set(
+                x,
+                y + (i + 0.5) * stepHeight,
+                z - i * stepDepth
+            );
+            
+            step.userData = { isCollider: true };
+            building.add(step);
+            game.collidableObjects.push(step);
         }
         
-        building.add(interiorStairs);
-    }
-
-    static addFurniture(building) {
-        // Ground floor furniture
+        // Add railings
+        const railHeight = 1.2;
+        const railThickness = 0.2;
         
-        // Table
-        const tableMaterial = new THREE.MeshPhongMaterial({
-            color: 0x5d4037,
-            shininess: 30
-        });
-        
-        const tableTop = new THREE.Mesh(
-            new THREE.BoxGeometry(3, 0.2, 2),
-            tableMaterial
+        // Left railing
+        const leftRail = new THREE.Mesh(
+            new THREE.BoxGeometry(railThickness, railHeight + height, railThickness),
+            materials.pillar
         );
-        tableTop.position.set(5, 1, 0);
-        
-        const tableLeg1 = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.1, 0.1, 1, 8),
-            tableMaterial
+        leftRail.position.set(
+            x - stairWidth/2,
+            y + height/2 + railHeight/2,
+            z - steps * stepDepth/2
         );
-        tableLeg1.position.set(4, 0.5, -0.8);
+        leftRail.userData = { isCollider: true };
+        building.add(leftRail);
+        game.collidableObjects.push(leftRail);
         
-        const tableLeg2 = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.1, 0.1, 1, 8),
-            tableMaterial
+        // Right railing
+        const rightRail = new THREE.Mesh(
+            new THREE.BoxGeometry(railThickness, railHeight + height, railThickness),
+            materials.pillar
         );
-        tableLeg2.position.set(6, 0.5, -0.8);
-        
-        const tableLeg3 = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.1, 0.1, 1, 8),
-            tableMaterial
+        rightRail.position.set(
+            x + stairWidth/2,
+            y + height/2 + railHeight/2,
+            z - steps * stepDepth/2
         );
-        tableLeg3.position.set(4, 0.5, 0.8);
+        rightRail.userData = { isCollider: true };
+        building.add(rightRail);
+        game.collidableObjects.push(rightRail);
         
-        const tableLeg4 = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.1, 0.1, 1, 8),
-            tableMaterial
+        // Diagonal rails
+        const diagLength = Math.sqrt(height*height + (steps*stepDepth)*(steps*stepDepth));
+        
+        // Left diagonal
+        const leftDiag = new THREE.Mesh(
+            new THREE.BoxGeometry(railThickness, railThickness, diagLength),
+            materials.pillar
         );
-        tableLeg4.position.set(6, 0.5, 0.8);
-        
-        building.add(tableTop, tableLeg1, tableLeg2, tableLeg3, tableLeg4);
-        
-        // Second floor furniture
-        // Bed
-        const bedFrame = new THREE.Mesh(
-            new THREE.BoxGeometry(3, 0.5, 5),
-            new THREE.MeshPhongMaterial({ color: 0x795548 })
+        leftDiag.position.set(
+            x - stairWidth/2,
+            y + height/2 + railHeight,
+            z - steps * stepDepth/2
         );
-        bedFrame.position.set(-5, 4.5, -3);
+        leftDiag.rotation.x = -Math.atan2(height, steps*stepDepth);
+        leftDiag.userData = { isCollider: true };
+        building.add(leftDiag);
+        game.collidableObjects.push(leftDiag);
         
-        const mattress = new THREE.Mesh(
-            new THREE.BoxGeometry(2.8, 0.4, 4.8),
-            new THREE.MeshPhongMaterial({ color: 0xf5f5f5 })
+        // Right diagonal
+        const rightDiag = new THREE.Mesh(
+            new THREE.BoxGeometry(railThickness, railThickness, diagLength),
+            materials.pillar
         );
-        mattress.position.set(-5, 4.95, -3);
-        
-        const pillow = new THREE.Mesh(
-            new THREE.BoxGeometry(2, 0.3, 1),
-            new THREE.MeshPhongMaterial({ color: 0xffffff })
+        rightDiag.position.set(
+            x + stairWidth/2,
+            y + height/2 + railHeight,
+            z - steps * stepDepth/2
         );
-        pillow.position.set(-5, 5.3, -5);
-        
-        building.add(bedFrame, mattress, pillow);
+        rightDiag.rotation.x = -Math.atan2(height, steps*stepDepth);
+        rightDiag.userData = { isCollider: true };
+        building.add(rightDiag);
+        game.collidableObjects.push(rightDiag);
     }
 }
 
