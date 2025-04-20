@@ -28,13 +28,10 @@ class Building {
         // Create floating platform structure
         this.createPlatformStructure(building, materials, game);
         
-        // Add access points - stairs to the roof
-        this.createStairs(building, materials, 15, 8, 0, 15, 7, game);
+        // Removed stairs call
         
         building.position.set(0, 0, 0);
         game.scene.add(building);
-        
-        // Remove tunnel creation from here
     }
     
     static createPlatformStructure(building, materials, game) {
@@ -132,93 +129,7 @@ class Building {
         });
     }
     
-    static createStairs(building, materials, x, y, z, height, steps, game) {
-        const stairWidth = 4;
-        const stepDepth = 1;
-        const stepHeight = height / steps;
-        
-        for (let i = 0; i < steps; i++) {
-            const step = new THREE.Mesh(
-                new THREE.BoxGeometry(stairWidth, stepHeight, stepDepth),
-                materials.platform
-            );
-            
-            step.position.set(
-                x,
-                y + (i + 0.5) * stepHeight,
-                z - i * stepDepth
-            );
-            
-            step.userData = { isCollider: true };
-            building.add(step);
-            game.collidableObjects.push(step);
-        }
-        
-        // Add railings
-        const railHeight = 1.2;
-        const railThickness = 0.2;
-        
-        // Left railing
-        const leftRail = new THREE.Mesh(
-            new THREE.BoxGeometry(railThickness, railHeight + height, railThickness),
-            materials.pillar
-        );
-        leftRail.position.set(
-            x - stairWidth/2,
-            y + height/2 + railHeight/2,
-            z - steps * stepDepth/2
-        );
-        leftRail.userData = { isCollider: true };
-        building.add(leftRail);
-        game.collidableObjects.push(leftRail);
-        
-        // Right railing
-        const rightRail = new THREE.Mesh(
-            new THREE.BoxGeometry(railThickness, railHeight + height, railThickness),
-            materials.pillar
-        );
-        rightRail.position.set(
-            x + stairWidth/2,
-            y + height/2 + railHeight/2,
-            z - steps * stepDepth/2
-        );
-        rightRail.userData = { isCollider: true };
-        building.add(rightRail);
-        game.collidableObjects.push(rightRail);
-        
-        // Diagonal rails
-        const diagLength = Math.sqrt(height*height + (steps*stepDepth)*(steps*stepDepth));
-        
-        // Left diagonal
-        const leftDiag = new THREE.Mesh(
-            new THREE.BoxGeometry(railThickness, railThickness, diagLength),
-            materials.pillar
-        );
-        leftDiag.position.set(
-            x - stairWidth/2,
-            y + height/2 + railHeight,
-            z - steps * stepDepth/2
-        );
-        leftDiag.rotation.x = -Math.atan2(height, steps*stepDepth);
-        leftDiag.userData = { isCollider: true };
-        building.add(leftDiag);
-        game.collidableObjects.push(leftDiag);
-        
-        // Right diagonal
-        const rightDiag = new THREE.Mesh(
-            new THREE.BoxGeometry(railThickness, railThickness, diagLength),
-            materials.pillar
-        );
-        rightDiag.position.set(
-            x + stairWidth/2,
-            y + height/2 + railHeight,
-            z - steps * stepDepth/2
-        );
-        rightDiag.rotation.x = -Math.atan2(height, steps*stepDepth);
-        rightDiag.userData = { isCollider: true };
-        building.add(rightDiag);
-        game.collidableObjects.push(rightDiag);
-    }
+    // Removed createStairs method
 }
 
 export { Building };
