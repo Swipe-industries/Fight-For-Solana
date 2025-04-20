@@ -4,39 +4,42 @@ class Building {
     static create(game) {
         const building = new THREE.Group();
         
-        // Main building structure - larger with 2 floors
+        // Create base material with brick-like texture
         const wallsMaterial = new THREE.MeshPhongMaterial({
-            color: 0xcccccc,
-            shininess: 10
+            color: 0xe8d1c5, // Beige-pink brick color
+            roughness: 0.8,
+            metalness: 0.2
         });
+
+        // Create tower section (taller building)
+        const towerHeight = 40;
+        const numFloors = 10;
+        const floorHeight = 4;
         
-        // Ground floor
-        const groundFloor = new THREE.Mesh(
-            new THREE.BoxGeometry(20, 4, 15),
+        const tower = new THREE.Mesh(
+            new THREE.BoxGeometry(15, towerHeight, 15),
             wallsMaterial
         );
-        groundFloor.position.y = 2;
-        building.add(groundFloor);
-        
-        // Second floor
-        const secondFloor = new THREE.Mesh(
-            new THREE.BoxGeometry(20, 4, 15),
+        tower.position.set(-10, towerHeight/2, 0);
+        building.add(tower);
+
+        // Create shorter section
+        const shorterBuilding = new THREE.Mesh(
+            new THREE.BoxGeometry(20, 16, 15),
             wallsMaterial
         );
-        secondFloor.position.y = 6;
-        building.add(secondFloor);
+        shorterBuilding.position.set(10, 8, 0);
+        building.add(shorterBuilding);
+
+        // Add architectural details
+        this.addArchitecturalDetails(building);
         
-        // Roof
-        const roofGeometry = new THREE.ConeGeometry(14, 5, 4);
-        const roofMaterial = new THREE.MeshPhongMaterial({
-            color: 0x8B4513,
-            shininess: 5
-        });
-        const roof = new THREE.Mesh(roofGeometry, roofMaterial);
-        roof.position.y = 10.5;
-        roof.rotation.y = Math.PI / 4;
-        building.add(roof);
+        // Add windows with more realistic pattern
+        this.addDetailedWindows(building);
         
+        // Add fire escape
+        this.addFireEscape(building);
+
         // Create hollow interior by removing inner part
         Building.createInteriors(building);
         
@@ -58,16 +61,128 @@ class Building {
                 object.castShadow = true;
                 object.receiveShadow = true;
                 
-                // Only add collision for exterior walls and floors
-                if (object === groundFloor || object === secondFloor || 
-                    object === roof || object.name === "floor") {
+                if (object.name === "structure") {
                     game.collidableObjects.push(object);
                 }
             }
         });
-        
+
         building.position.set(0, 0, 0);
         game.scene.add(building);
+    }
+
+    static addArchitecturalDetails(building) {
+        const detailsMaterial = new THREE.MeshPhongMaterial({
+            color: 0xd3c0b5,
+            shininess: 5
+        });
+
+        // Add cornices between floors
+        for (let i = 1; i <= 10; i++) {
+            const cornice = new THREE.Mesh(
+                new THREE.BoxGeometry(15.5, 0.3, 15.5),
+                detailsMaterial
+            );
+            cornice.position.set(-10, i * 4 - 0.15, 0);
+            building.add(cornice);
+        }
+
+        // Add ground floor detail
+        const baseDetail = new THREE.Mesh(
+            new THREE.BoxGeometry(36, 1, 16),
+            detailsMaterial
+        );
+        baseDetail.position.set(0, 0.5, 0);
+        building.add(baseDetail);
+    }
+
+    static addDetailedWindows(building) {
+        const windowMaterial = new THREE.MeshPhongMaterial({
+            color: 0x87CEEB,
+            shininess: 90,
+            opacity: 0.7,
+            transparent: true
+        });
+
+        // Tower windows
+        for (let floor = 0; floor < 10; floor++) {
+            for (let column = 0; column < 3; column++) {
+                for (let side = 0; side < 4; side++) {
+                    const window = new THREE.Mesh(
+                        new THREE.BoxGeometry(1.2, 2, 0.1),
+                        windowMaterial
+                    );
+                    
+                    const angle = (side * Math.PI) / 2;
+                    const radius = 7;
+                    const x = -10 + Math.sin(angle) * radius;
+                    const z = Math.cos(angle) * radius;
+                    
+                    window.position.set(
+                        x + (column - 1) * 2,
+                        floor * 4 + 2,
+                        z
+                    );
+                    window.rotation.y = angle;
+                    building.add(window);
+                }
+            }
+        }
+
+        // Shorter building windows
+        const shorterBuildingWindows = [
+            // Front row
+            [8, 2, 7.5], [10, 2, 7.5], [12, 2, 7.5],
+            [8, 6, 7.5], [10, 6, 7.5], [12, 6, 7.5],
+            [8, 10, 7.5], [10, 10, 7.5], [12, 10, 7.5],
+        ];
+
+        shorterBuildingWindows.forEach(pos => {
+            const window = new THREE.Mesh(
+                new THREE.BoxGeometry(1.2, 2, 0.1),
+                windowMaterial
+            );
+            window.position.set(...pos);
+            building.add(window);
+        });
+    }
+
+    static addFireEscape(building) {
+        const fireEscapeMaterial = new THREE.MeshPhongMaterial({
+            color: 0x333333,
+            metalness: 0.8,
+            roughness: 0.2
+        });
+
+        const fireEscape = new THREE.Group();
+
+        // Create platforms and ladders
+        for (let floor = 1; floor < 10; floor++) {
+            // Platform
+            const platform = new THREE.Mesh(
+                new THREE.BoxGeometry(3, 0.2, 4),
+                fireEscapeMaterial
+            );
+            platform.position.set(-17, floor * 4, 0);
+            
+            // Railings
+            const railing1 = new THREE.Mesh(
+                new THREE.BoxGeometry(3, 1, 0.1),
+                fireEscapeMaterial
+            );
+            railing1.position.set(-17, floor * 4 + 0.5, 2);
+            
+            // Ladder
+            const ladder = new THREE.Mesh(
+                new THREE.BoxGeometry(0.2, 4, 0.2),
+                fireEscapeMaterial
+            );
+            ladder.position.set(-17, floor * 4 - 2, 2);
+            
+            fireEscape.add(platform, railing1, ladder);
+        }
+
+        building.add(fireEscape);
     }
 
     static createInteriors(building) {
