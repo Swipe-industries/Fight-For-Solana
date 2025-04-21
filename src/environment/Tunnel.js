@@ -20,8 +20,9 @@ class Tunnel {
             })
         };
         
-        // Create a tunnel as a standalone structure at position (30, 0, 30)
-        this.createTunnel(materials, game, 30, 0, 30);
+        // Create a tunnel between wall and center building
+        // Positioned at x: -25 (towards wall but with gap), z: -30 (between wall and center)
+        this.createTunnel(materials, game, -25, 0, -30);
     }
     
     static createTunnel(materials, game, x, y, z) {
@@ -29,7 +30,7 @@ class Tunnel {
         const tunnelGroup = new THREE.Group();
         const tunnelWidth = 12; // Wider tunnel
         const tunnelHeight = 8;
-        const tunnelLength = 36;
+        const tunnelLength = 30; // Shortened length to avoid wall contact
         
         // Tunnel floor - visual only, no collision
         const tunnelFloor = new THREE.Mesh(
