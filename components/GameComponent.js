@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { Game } from '../src/Game.js';
 import { Player } from '../src/Player.js';
+import Connect from '../src/Wallet/Connection.js';
 
 export default function GameComponent() {
     const containerRef = useRef();
@@ -66,5 +67,21 @@ export default function GameComponent() {
         };
     }, []);
     
-    return <div id="game-container" ref={containerRef} style={{ width: '100%', height: '100%' }}></div>;
+    return (
+        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+            {/* Add Connect component at the top */}
+            <div style={{
+                position: 'absolute',
+                top: '10px',
+                left: '85%',
+                transform: 'translateX(-50%)',
+                zIndex: 20,
+            }}>
+                <Connect />
+            </div>
+            {/* Game container */}
+            <div id="game-container" ref={containerRef} style={{ width: '100%', height: '100%' }}>
+            </div>
+        </div>
+    );
 }
