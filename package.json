@@ -8,11 +8,16 @@
     "start": "next start"
   },
   "dependencies": {
-    "three": "^0.175.0",
+    "@react-three/drei": "^9.88.13",
+    "@solana/wallet-adapter-base": "^0.9.24",
+    "@solana/wallet-adapter-react": "^0.15.36",
+    "@solana/wallet-adapter-react-ui": "^0.9.36",
+    "@solana/wallet-adapter-wallets": "^0.19.34",
+    "@solana/web3.js": "^1.98.0",
     "next": "^14.0.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-three-fiber": "^6.0.13",
-    "@react-three/drei": "^9.88.13"
+    "three": "^0.175.0"
   }
 }
